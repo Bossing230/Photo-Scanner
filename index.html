@@ -167,8 +167,9 @@ const TAG_MAKE = 0x010f, TAG_MODEL = 0x0110, TAG_DATETIME = 0x0132,
 
 // Sorted copies go into this folder inside the photo folder (it is skipped when scanning).
 const SORTED_FOLDER = "Sorted";
-// If this page is opened straight from disk, talk to the API on this computer.
-const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:5000" : "";
+// The API is app.py on this computer (port 5000). If this page was opened any other way
+// (from disk, Live Server, another port), still talk to app.py instead of the page's own server.
+const API_BASE = location.port === "5000" && location.hostname === "127.0.0.1" ? "" : "http://127.0.0.1:5000";
 
 const $ = (id) => document.getElementById(id);
 const canWrite = "showDirectoryPicker" in window;
@@ -517,6 +518,7 @@ async function findDuplicates() {
   catch (_) { throw new Error("Could not reach the API. Start it with:  python app.py"); }
   if (!res.ok) {
     let msg = `The API answered with status ${res.status}.`;
+    if (res.status === 404 || res.status === 405) msg += " Make sure app.py is running (python app.py) and is the newest version.";
     try { msg = (await res.json()).error || msg; } catch (_) {}
     throw new Error(msg);
   }

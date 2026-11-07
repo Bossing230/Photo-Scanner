@@ -50,15 +50,36 @@ app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 * 1024  # 2 GB per request
 
 @app.after_request
 def allow_other_origins(response):
-    """Lets the page work even when index.html is opened straight from disk."""
+    """Lets the page call this API from GitHub Pages, from disk, or from any other address."""
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    # Chrome asks for this when a public https page (like GitHub Pages) talks to localhost
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
     return response
+
+
+def find_page():
+    """index.html next to this file. If a download renamed it (index(1).html ...), use that."""
+    if os.path.isfile(os.path.join(HERE, "index.html")):
+        return "index.html"
+    for name in sorted(os.listdir(HERE)):
+        if name.lower().endswith(".html") and "index" in name.lower():
+            return name
+    return None
 
 
 @app.route("/")
 def home():
-    return send_from_directory(HERE, "index.html")
+    page = find_page()
+    if page is None:
+        return (
+            "<h2>index.html not found</h2>"
+            f"<p>Put <b>index.html</b> in this folder, next to app.py:</p><p><code>{HERE}</code></p>"
+            "<p>Then refresh this page.</p>",
+            404,
+        )
+    return send_from_directory(HERE, page)
 
 
 def file_hash(stream, chunk=1024 * 1024):
@@ -149,4 +170,7 @@ def duplicates():
 
 
 if __name__ == "__main__":
+    print(f"Folder: {HERE}")
+    print(f"Page:   {find_page() or 'NOT FOUND - put index.html in the folder above'}")
+    print("Open http://127.0.0.1:5000 in Chrome or Edge")
     app.run(host="127.0.0.1", port=5000)
