@@ -167,9 +167,39 @@ const TAG_MAKE = 0x010f, TAG_MODEL = 0x0110, TAG_DATETIME = 0x0132,
 
 // Sorted copies go into this folder inside the photo folder (it is skipped when scanning).
 const SORTED_FOLDER = "Sorted";
-// The API is app.py on this computer (port 5000). If this page was opened any other way
-// (from disk, Live Server, another port), still talk to app.py instead of the page's own server.
-const API_BASE = location.port === "5000" && location.hostname === "127.0.0.1" ? "" : "http://127.0.0.1:5000";
+// Which API answers "Find duplicates":
+//  - Built-in API: sw.js (a service worker next to this page) answers POST api/duplicates.
+//    It needs no server, so it works on GitHub Pages. This is the default.
+//  - app.py (Flask): used when the page is opened from http://127.0.0.1:5000, from disk (file://),
+//    or when you add  ?api=https://your-server  to the page address.
+const params = new URLSearchParams(location.search);
+const customApi = params.get("api");
+const servedByFlask = location.hostname === "127.0.0.1" && location.port === "5000";
+const useBuiltIn = !customApi && !servedByFlask && location.protocol !== "file:";
+const API_URL = customApi ? customApi.replace(/\/$/, "") + "/api/duplicates"
+  : location.protocol === "file:" ? "http://127.0.0.1:5000/api/duplicates"
+  : servedByFlask ? "/api/duplicates"
+  : new URL("api/duplicates", location.href).href;
+
+// Start the built-in API (service worker) as soon as the page loads.
+const builtInReady = useBuiltIn && "serviceWorker" in navigator
+  ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null)
+  : Promise.resolve(null);
+
+async function ensureBuiltIn() {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("This browser can't run the built-in API. Use Chrome or Edge on the GitHub Pages address.");
+  }
+  if (!(await builtInReady)) {
+    throw new Error("The built-in API (sw.js) could not start. Make sure sw.js is uploaded next to index.html.");
+  }
+  if (!navigator.serviceWorker.controller) {   // first visit: wait for sw.js to take control
+    await new Promise((done) => {
+      navigator.serviceWorker.addEventListener("controllerchange", done, { once: true });
+      setTimeout(done, 3000);
+    });
+  }
+}
 
 const $ = (id) => document.getElementById(id);
 const canWrite = "showDirectoryPicker" in window;
@@ -513,12 +543,17 @@ async function findDuplicates() {
   for (const p of list) form.append("files", p.file, p.name);
 
   setStatus(`Sending ${list.length} photo(s) to the API...`);
+  if (useBuiltIn) await ensureBuiltIn();
   let res;
-  try { res = await fetch(API_BASE + "/api/duplicates", { method: "POST", body: form }); }
+  try { res = await fetch(API_URL, { method: "POST", body: form }); }
   catch (_) { throw new Error("Could not reach the API. Start it with:  python app.py"); }
   if (!res.ok) {
     let msg = `The API answered with status ${res.status}.`;
-    if (res.status === 404 || res.status === 405) msg += " Make sure app.py is running (python app.py) and is the newest version.";
+    if (res.status === 404 || res.status === 405) {
+      msg += useBuiltIn
+        ? " Reload the page once (Ctrl+Shift+R) so the built-in API can start, then try again."
+        : " Make sure app.py is running (python app.py) and is the newest version.";
+    }
     try { msg = (await res.json()).error || msg; } catch (_) {}
     throw new Error(msg);
   }
@@ -527,6 +562,7 @@ async function findDuplicates() {
   resetResults("Duplicate results");
   addSummary([
     ["Photos checked", String(data.total_files)],
+    ["Checked by", useBuiltIn ? "Built-in API (sw.js)" : "Server API (app.py)"],
     ["Duplicate groups", String(data.groups.length)],
     ["Extra copies", String(data.extra_copies)],
     ["Space used by extras", fmtSize(data.wasted_bytes)],
