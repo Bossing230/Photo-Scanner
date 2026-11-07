@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Organizer</title>
+<style>
+:root {
+  --paper: #f4f5f6;
+  --card: #ffffff;
+  --soft: #eef1f3;
+  --ink: #1f2933;
+  --muted: #616e7c;
+  --line: #d9dee3;
+  --accent: #27445c;
+  --accent-ink: #ffffff;
+  --danger: #b4432f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #16191d;
+    --card: #1f2429;
+    --soft: #171b1f;
+    --ink: #e6eaee;
+    --muted: #9aa5b1;
+    --line: #323a42;
+    --accent: #7fa8c9;
+    --accent-ink: #10161b;
+    --danger: #e0674f;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; padding: 32px 20px 56px; }
+header { margin-bottom: 24px; }
+h1 { font-size: 1.8rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 1.1rem; margin: 0 0 12px; }
+h3 { font-size: 0.95rem; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+.lede { margin: 0; color: var(--muted); }
+.notice { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin: 0 0 16px; }
+
+/* Each step is a plain white panel */
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; margin: 0 0 16px; }
+.panel > h2 { display: flex; align-items: center; gap: 10px; }
+.panel > h2 .num {
+  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; font-weight: 600;
+}
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.path { color: var(--muted); font-size: 0.95rem; overflow-wrap: anywhere; }
+fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 10px 24px; flex-wrap: wrap; }
+legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+label { display: flex; align-items: center; gap: 8px; }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
+button, select {
+  font: inherit; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px; cursor: pointer;
+}
+select { padding: 6px 10px; }
+button:hover:not(:disabled) { border-color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Photo preview */
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
+.toolbar .count { color: var(--muted); margin-right: auto; }
+.toolbar button { padding: 4px 12px; }
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
+  max-height: 340px; overflow: auto; padding: 10px; margin: 0;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--soft);
+}
+.grid:empty { display: block; padding: 36px 10px; text-align: center; }
+.grid:empty::before { content: "No photos yet. Choose a photo folder to see a preview."; color: var(--muted); }
+.card { display: block; position: relative; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--card); }
+.card:has(input:checked) { border-color: var(--accent); }
+.card input { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; }
+.card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--soft); }
+.card .cap { padding: 4px 6px 5px; font-size: 0.78rem; line-height: 1.3; }
+.card .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .sub { color: var(--muted); }
+.card.off { opacity: 0.5; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }
+.hint { color: var(--muted); margin: 0 0 4px; font-size: 0.92rem; }
+#status { color: var(--muted); margin: 0; min-height: 1.5em; overflow-wrap: anywhere; }
+
+/* Results */
+#results { margin-bottom: 0; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 0 0 18px; }
+.summary > div { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
+.summary dt { color: var(--muted); font-size: 0.8rem; }
+.summary dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.tablewrap { max-height: 380px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; margin: 0 0 18px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--soft); }
+tbody tr:nth-child(even) td { background: var(--soft); }
+tr:last-child td { border-bottom: 0; }
+.keep td { font-weight: 600; }
+.fail td { color: var(--danger); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Photo Organizer</h1>
+    <p class="lede">Sort photos into folders by date or camera, and find duplicate files.</p>
+  </header>
+  <p id="support" class="notice" hidden>This browser can't write to folders. Use Chrome or Edge to organize files; here you can still preview photos and find duplicates.</p>
+
+  <section class="panel">
+    <h2><span class="num">1</span> Choose photos</h2>
+    <div class="row">
+      <button id="pickSource" type="button">Choose photo folder</button>
+      <span id="sourceName" class="path">No folder chosen</span>
+    </div>
+    <div class="toolbar">
+      <span id="count" class="count">0 photos</span>
+      <label>Order by
+        <select id="order">
+          <option value="name">Name</option>
+          <option value="date">Date taken</option>
+          <option value="camera">Camera</option>
+          <option value="size">Size</option>
+        </select>
+      </label>
+      <button id="selAll" type="button" disabled>Select all</button>
+      <button id="selNone" type="button" disabled>Select none</button>
+    </div>
+    <div id="grid" class="grid" aria-label="Photo preview"></div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="num">2</span> Sort photos</h2>
+    <fieldset>
+      <legend>Sort photos</legend>
+      <label><input type="radio" name="mode" value="date" checked> By date (year / month)</label>
+      <label><input type="radio" name="mode" value="camera"> By camera</label>
+    </fieldset>
+  </section>
+
+  <section class="panel">
+    <h2><span class="num">3</span> Run</h2>
+    <div class="actions">
+      <button id="organize" type="button" class="primary" disabled>Organize photos</button>
+      <button id="dupes" type="button" disabled>Find duplicates</button>
+    </div>
+    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed.</p>
+    <p id="status" aria-live="polite">Choose a photo folder to see a preview of your pictures.</p>
+  </section>
+
+  <section id="results" class="panel" hidden></section>
+</main>
+<script>
+"use strict";
+
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp"]);
+const TAG_MAKE = 0x010f, TAG_MODEL = 0x0110, TAG_DATETIME = 0x0132,
+      TAG_EXIF_IFD = 0x8769, TAG_DATETIME_ORIGINAL = 0x9003;
+
+// Sorted copies go into this folder inside the photo folder (it is skipped when scanning).
+const SORTED_FOLDER = "Sorted";
+// If this page is opened straight from disk, talk to the API on this computer.
+const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:5000" : "";
+
+const $ = (id) => document.getElementById(id);
+const canWrite = "showDirectoryPicker" in window;
+let source = null;      // { name, handle? }
+let photos = [];        // { name, path, parent?, file, size, date, camera, selected, url }
+let working = false;
+
+// ------------------------------------------------------------ helpers ----
+const extOf = (name) => { const i = name.lastIndexOf("."); return i < 0 ? "" : name.slice(i).toLowerCase(); };
+const pad = (n) => String(n).padStart(2, "0");
+const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function fmtSize(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB";
+  return (n / 1073741824).toFixed(2) + " GB";
+}
+const setStatus = (msg) => { $("status").textContent = msg; };
+
+function refreshButtons() {
+  const anySelected = photos.some((p) => p.selected);
+  $("pickSource").disabled = working;
+  $("selAll").disabled = working || !photos.length;
+  $("selNone").disabled = working || !photos.length;
+  $("organize").disabled = working || !canWrite || !anySelected;
+  $("dupes").disabled = working || !anySelected;
+}
+
+async function busy(fn) {
+  working = true;
+  refreshButtons();
+  try { await fn(); }
+  catch (err) { setStatus("Error: " + (err && err.message ? err.message : err)); }
+  working = false;
+  refreshButtons();
+}
+
+// ---------------------------------------------------------------- INPUT ----
+async function walk(dirHandle, prefix, out) {
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (handle.kind === "directory") {
+      if (prefix === "" && name === SORTED_FOLDER) continue;   // never scan our own output
+      await walk(handle, prefix + name + "/", out);
+    } else if (IMAGE_EXTENSIONS.has(extOf(name))) {
+      out.push({ name, path: prefix + name, parent: dirHandle, handle });
+    }
+  }
+}
+
+// Minimal EXIF reader (JPEG). Returns { make, model, date } where present.
+function parseExif(buf) {
+  const v = new DataView(buf);
+  if (v.getUint16(0) !== 0xffd8) return {};
+  let off = 2;
+  while (off + 4 < v.byteLength) {
+    const marker = v.getUint16(off);
+    off += 2;
+    if ((marker & 0xff00) !== 0xff00) break;
+    const len = v.getUint16(off);
+    if (marker === 0xffe1 && v.getUint32(off + 2) === 0x45786966) return parseTiff(v, off + 8);
+    off += len;
+  }
+  return {};
+}
+
+function parseTiff(v, start) {
+  const little = v.getUint16(start) === 0x4949;
+  const readIfd = (ifd) => {
+    const tags = {};
+    const n = v.getUint16(ifd, little);
+    for (let i = 0; i < n; i++) {
+      const e = ifd + 2 + i * 12;
+      const tag = v.getUint16(e, little), type = v.getUint16(e + 2, little), count = v.getUint32(e + 4, little);
+      if (type === 2) {
+        const pos = count > 4 ? start + v.getUint32(e + 8, little) : e + 8;
+        let s = "";
+        for (let j = 0; j < count && pos + j < v.byteLength; j++) {
+          const c = v.getUint8(pos + j);
+          if (c === 0) break;
+          s += String.fromCharCode(c);
+        }
+        tags[tag] = s;
+      } else if (type === 4) tags[tag] = v.getUint32(e + 8, little);
+    }
+    return tags;
+  };
+  const ifd0 = readIfd(start + v.getUint32(start + 4, little));
+  let raw = null;
+  if (ifd0[TAG_EXIF_IFD]) {
+    try { raw = readIfd(start + ifd0[TAG_EXIF_IFD])[TAG_DATETIME_ORIGINAL]; } catch (_) {}
+  }
+  raw = raw || ifd0[TAG_DATETIME];
+  const m = raw && /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(raw.trim());
+  return {
+    make: (ifd0[TAG_MAKE] || "").trim(),
+    model: (ifd0[TAG_MODEL] || "").trim(),
+    date: m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null,
+  };
+}
+
+// Returns { date, camera }. Date falls back to the file's modified time.
+async function readMetadata(file) {
+  let date = null, camera = null;
+  try {
+    const info = parseExif(await file.slice(0, 131072).arrayBuffer());
+    const { make = "", model = "" } = info;
+    if (make || model) {
+      // Avoid "Canon Canon EOS" when the model already contains the make
+      camera = make && model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`.trim();
+    }
+    date = info.date && !isNaN(info.date) ? info.date : null;
+  } catch (_) { /* unreadable metadata: fall back below */ }
+  if (!date) date = new Date(file.lastModified);
+  return { date, camera: camera || "Unknown Camera" };
+}
+
+async function loadPhotos(entries) {
+  photos.forEach((p) => URL.revokeObjectURL(p.url));
+  photos = [];
+  renderGrid();
+  $("results").hidden = true;
+  let skipped = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (i % 10 === 0) setStatus(`Reading photos... ${i + 1} of ${entries.length}`);
+    try {
+      const file = e.file || await e.handle.getFile();
+      const meta = await readMetadata(file);
+      photos.push({ name: e.name, path: e.path, parent: e.parent, file, size: file.size,
+                    date: meta.date, camera: meta.camera, selected: true, url: URL.createObjectURL(file) });
+    } catch (_) { skipped++; }
+  }
+  applyOrder();
+  setStatus(photos.length
+    ? `Loaded ${photos.length} photo(s)` + (skipped ? `, ${skipped} could not be read.` : ".") + " Untick any you want to leave out."
+    : "No photos found in that folder.");
+}
+
+// -------------------------------------------------------------- PREVIEW ----
+function applyOrder() {
+  const key = $("order").value;
+  const by = {
+    name: (a, b) => (a.path < b.path ? -1 : 1),
+    date: (a, b) => a.date - b.date || (a.path < b.path ? -1 : 1),
+    camera: (a, b) => a.camera.localeCompare(b.camera) || (a.path < b.path ? -1 : 1),
+    size: (a, b) => b.size - a.size,
+  };
+  photos.sort(by[key]);
+  renderGrid();
+}
+
+function updateCount() {
+  const sel = photos.filter((p) => p.selected).length;
+  $("count").textContent = `${photos.length} photo(s), ${sel} selected`;
+  refreshButtons();
+}
+
+function renderGrid() {
+  const grid = $("grid");
+  grid.replaceChildren();
+  for (const p of photos) {
+    const card = document.createElement("label");
+    card.className = "card" + (p.selected ? "" : " off");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = p.selected;
+    box.addEventListener("change", () => { p.selected = box.checked; card.classList.toggle("off", !p.selected); updateCount(); });
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.alt = p.name;
+    img.src = p.url;
+    img.addEventListener("error", () => { img.removeAttribute("src"); });   // e.g. TIFF can't be shown by browsers
+    const cap = document.createElement("div");
+    cap.className = "cap";
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = p.name;
+    name.title = p.path;
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    sub.textContent = `${p.date.getFullYear()}-${pad(p.date.getMonth() + 1)}-${pad(p.date.getDate())} · ${fmtSize(p.size)}`;
+    cap.append(name, sub);
+    card.append(box, img, cap);
+    grid.append(card);
+  }
+  updateCount();
+}
+
+function setAll(value) {
+  photos.forEach((p) => (p.selected = value));
+  renderGrid();
+}
+
+// -------------------------------------------------------------- RESULTS ----
+function resetResults(title) {
+  const box = $("results");
+  box.hidden = false;
+  box.replaceChildren();
+  const h = document.createElement("h2");
+  h.textContent = title;
+  box.append(h);
+}
+
+function addSummary(pairs) {
+  const dl = document.createElement("dl");
+  dl.className = "summary";
+  for (const [k, v] of pairs) {
+    const wrap = document.createElement("div");
+    const dt = document.createElement("dt");
+    const dd = document.createElement("dd");
+    dt.textContent = k;
+    dd.textContent = v;
+    wrap.append(dt, dd);
+    dl.append(wrap);
+  }
+  $("results").append(dl);
+}
+
+// rows: array of arrays of strings; a row can be { cells, className }
+function addTable(title, headers, rows) {
+  if (title) {
+    const h = document.createElement("h3");
+    h.textContent = title;
+    $("results").append(h);
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "tablewrap";
+  const table = document.createElement("table");
+  const head = table.createTHead().insertRow();
+  for (const text of headers) {
+    const th = document.createElement("th");
+    th.textContent = text;
+    head.append(th);
+  }
+  const body = table.createTBody();
+  for (const row of rows) {
+    const cells = Array.isArray(row) ? row : row.cells;
+    const tr = body.insertRow();
+    if (!Array.isArray(row) && row.className) tr.className = row.className;
+    for (const text of cells) tr.insertCell().textContent = text;
+  }
+  wrap.append(table);
+  $("results").append(wrap);
+}
+
+function addNote(text) {
+  const p = document.createElement("p");
+  p.textContent = text;
+  $("results").append(p);
+}
+
+// -------------------------------------------------------------- PROCESS ----
+function safeName(text) {
+  const s = text.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/^[ .]+|[ .]+$/g, "");
+  return s || "Unknown";
+}
+
+function targetParts(date, camera, mode) {
+  if (mode === "date") {
+    const y = String(date.getFullYear());
+    return [y, `${y}-${pad(date.getMonth() + 1)}`];
+  }
+  return [safeName(camera)];
+}
+
+async function getDir(root, parts) {
+  let dir = root;
+  for (const p of parts) dir = await dir.getDirectoryHandle(p, { create: true });
+  return dir;
+}
+
+async function exists(dir, name) {
+  try { await dir.getFileHandle(name); return true; }
+  catch (e) { if (e.name === "NotFoundError") return false; throw e; }
+}
+
+// If the name exists, add _1, _2 ... so nothing is overwritten. Returns the name used.
+async function uniqueName(dir, name) {
+  if (!(await exists(dir, name))) return name;
+  const i = name.lastIndexOf(".");
+  const base = i < 0 ? name : name.slice(0, i), ext = i < 0 ? "" : name.slice(i);
+  let n = 1;
+  while (await exists(dir, `${base}_${n}${ext}`)) n++;
+  return `${base}_${n}${ext}`;
+}
+
+async function copyInto(dir, name, file) {
+  const finalName = await uniqueName(dir, name);
+  const fh = await dir.getFileHandle(finalName, { create: true });
+  const w = await fh.createWritable();
+  await w.write(file);
+  await w.close();
+  return finalName;
+}
+
+// Copies the selected photos into  <photo folder>/Sorted/...  (originals are never touched).
+async function organize() {
+  const list = photos.filter((p) => p.selected);
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const perFolder = new Map();
+  const rows = [];
+  let copied = 0, failed = 0;
+  resetResults("Organize results");
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    setStatus(`Copying ${i + 1} of ${list.length}: ${p.name}`);
+    const parts = [SORTED_FOLDER, ...targetParts(p.date, p.camera, mode)];
+    const folder = parts.join("/");
+    try {
+      const dir = await getDir(source.handle, parts);
+      const finalName = await copyInto(dir, p.name, p.file);
+      copied++;
+      perFolder.set(folder, (perFolder.get(folder) || 0) + 1);
+      rows.push([p.path, p.camera, fmtDate(p.date), fmtSize(p.size), `Copied to ${folder}/${finalName}`]);
+    } catch (err) {
+      failed++;
+      rows.push({ cells: [p.path, p.camera, fmtDate(p.date), fmtSize(p.size), `Failed: ${err.message || err}`], className: "fail" });
+    }
+  }
+  $("results").replaceChildren();
+  resetResults("Organize results");
+  addSummary([
+    ["Photos selected", String(list.length)],
+    ["Copied", String(copied)],
+    ["Failed", String(failed)],
+    ["Sorted by", mode === "date" ? "Date (year / month)" : "Camera"],
+    ["Folders used", String(perFolder.size)],
+    ["Saved in", `${source.name}/${SORTED_FOLDER}`],
+  ]);
+  addTable("Photos per folder", ["Folder", "Photos"],
+    [...perFolder.entries()].sort().map(([f, n]) => [f, String(n)]));
+  addTable("Every photo", ["Photo", "Camera", "Date taken", "Size", "Result"], rows);
+  setStatus(`Done. ${copied} photo(s) copied into ${perFolder.size} folder(s)` + (failed ? `, ${failed} failed.` : "."));
+}
+
+// Sends the selected photos to the API, which returns the groups of identical files.
+async function findDuplicates() {
+  const list = photos.filter((p) => p.selected);
+  const form = new FormData();
+  form.append("manifest", JSON.stringify(list.map((p) => ({ path: p.path, lastModified: p.file.lastModified }))));
+  for (const p of list) form.append("files", p.file, p.name);
+
+  setStatus(`Sending ${list.length} photo(s) to the API...`);
+  let res;
+  try { res = await fetch(API_BASE + "/api/duplicates", { method: "POST", body: form }); }
+  catch (_) { throw new Error("Could not reach the API. Start it with:  python app.py"); }
+  if (!res.ok) {
+    let msg = `The API answered with status ${res.status}.`;
+    try { msg = (await res.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+
+  resetResults("Duplicate results");
+  addSummary([
+    ["Photos checked", String(data.total_files)],
+    ["Duplicate groups", String(data.groups.length)],
+    ["Extra copies", String(data.extra_copies)],
+    ["Space used by extras", fmtSize(data.wasted_bytes)],
+  ]);
+  if (!data.groups.length) {
+    addNote("No duplicates found. Every selected photo is different.");
+    setStatus("Done. No duplicates found.");
+    return;
+  }
+  const rows = [];
+  data.groups.forEach((g, i) => {
+    g.files.forEach((f) => rows.push({
+      cells: [`Group ${i + 1}`, f.keep ? "Keep" : "Duplicate", f.path, fmtSize(f.size),
+              fmtDate(new Date(f.last_modified)), g.hash],
+      className: f.keep ? "keep" : "",
+    }));
+  });
+  addTable("Files in each group (the first file is the one to keep)",
+    ["Group", "Status", "File", "Size", "Modified", "Fingerprint"], rows);
+  setStatus(`Done. ${data.groups.length} group(s), ${data.extra_copies} extra copy/copies.`);
+}
+
+// --------------------------------------------------------------- EVENTS ----
+async function pickSource() {
+  if (canWrite) {
+    let handle;
+    try { handle = await window.showDirectoryPicker({ mode: "readwrite" }); }
+    catch (_) { return; }   // cancelled
+    source = { name: handle.name, handle };
+    $("sourceName").textContent = handle.name;
+    await busy(async () => {
+      setStatus("Looking for photos...");
+      const found = [];
+      await walk(handle, "", found);
+      await loadPhotos(found);
+    });
+    return;
+  }
+  // Fallback for browsers without the folder API: read-only picker
+  const input = document.createElement("input");
+  input.type = "file";
+  input.webkitdirectory = true;
+  input.onchange = () => {
+    const found = [...input.files]
+      .map((f) => ({ name: f.name, path: (f.webkitRelativePath || f.name).split("/").slice(1).join("/") || f.name, file: f }))
+      .filter((e) => IMAGE_EXTENSIONS.has(extOf(e.name)) && !e.path.startsWith(SORTED_FOLDER + "/"));
+    source = { name: "(selected folder)" };
+    $("sourceName").textContent = `${found.length} photo(s) selected`;
+    busy(() => loadPhotos(found));
+  };
+  input.click();
+}
+
+$("pickSource").addEventListener("click", pickSource);
+$("order").addEventListener("change", applyOrder);
+$("selAll").addEventListener("click", () => setAll(true));
+$("selNone").addEventListener("click", () => setAll(false));
+$("organize").addEventListener("click", () => busy(organize));
+$("dupes").addEventListener("click", () => busy(findDuplicates));
+
+if (!canWrite) $("support").hidden = false;
+refreshButtons();
+</script>
+</body>
+</html>
