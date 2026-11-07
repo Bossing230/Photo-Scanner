@@ -562,7 +562,6 @@ async function findDuplicates() {
   resetResults("Duplicate results");
   addSummary([
     ["Photos checked", String(data.total_files)],
-    ["Checked by", useBuiltIn ? "Built-in API (sw.js)" : "Server API (app.py)"],
     ["Duplicate groups", String(data.groups.length)],
     ["Extra copies", String(data.extra_copies)],
     ["Space used by extras", fmtSize(data.wasted_bytes)],
