@@ -132,24 +132,12 @@ tr:last-child td { border-bottom: 0; }
   </section>
 
   <section class="panel">
-    <h2><span class="num">2</span> Sort photos</h2>
-    <fieldset>
-      <legend>Sort photos</legend>
-      <label><input type="radio" name="mode" value="category" checked> By category (what is in the photo)</label>
-      <label><input type="radio" name="mode" value="date"> By date (year / month)</label>
-      <label><input type="radio" name="mode" value="camera"> By camera</label>
-    </fieldset>
-    <p class="hint" style="margin-top:10px">Photos are recognized automatically after you choose a folder (for example banana: Fruit). Each photo above shows what was detected and the folder it will go to.</p>
-  </section>
-
-  <section class="panel">
-    <h2><span class="num">3</span> Run</h2>
+    <h2><span class="num">2</span> Run</h2>
     <div class="actions">
-      <button id="preview" type="button" disabled>Preview categories</button>
       <button id="organize" type="button" class="primary" disabled>Organize photos</button>
       <button id="dupes" type="button" disabled>Find duplicates</button>
     </div>
-    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed. "Preview categories" shows where each photo would go without copying anything.</p>
+    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed. After you click Organize photos you choose the categories before anything is sorted.</p>
     <p id="status" aria-live="polite">Choose a photo folder to see a preview of your pictures.</p>
     <progress id="bar" max="100" value="0" hidden></progress>
   </section>
@@ -215,7 +203,8 @@ function fmtSize(n) {
   return (n / 1073741824).toFixed(2) + " GB";
 }
 const setStatus = (msg) => { $("status").textContent = msg; };
-const currentMode = () => document.querySelector('input[name="mode"]:checked').value;
+let sortMode = "category";   // category | date | camera, chosen after clicking Organize photos
+const currentMode = () => sortMode;
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));   // lets the page repaint
 
 function setProgress(value) {   // value 0..1, or null to hide, or "wait" for the moving bar
@@ -231,7 +220,6 @@ function refreshButtons() {
   $("pickSource").disabled = working;
   $("selAll").disabled = working || !photos.length;
   $("selNone").disabled = working || !photos.length;
-  $("preview").disabled = working || !anySelected;
   $("organize").disabled = working || !canWrite || !anySelected;
   $("dupes").disabled = working || !anySelected;
 }
@@ -534,27 +522,10 @@ const modeLabel = (mode) => ({ category: "Category (what is in the photo)", date
 const PHOTO_HEADERS = ["Photo", "Category", "Detected", "Camera", "Date taken", "Size"];
 const detected = (p) => (p.label ? `${p.label} (${Math.round(p.conf * 100)}%)` : "-");
 
-// Shows where every selected photo WOULD go. Nothing is copied.
-function previewCategories() {
-  const list = photos.filter((p) => p.selected);
-  const mode = currentMode();
-  const counts = new Map();
-  const rows = list.map((p) => {
-    const cat = categoryOf(p, mode);
-    counts.set(cat, (counts.get(cat) || 0) + 1);
-    return [p.path, `${SORTED_FOLDER}/${cat}`, detected(p), p.camera, fmtDate(p.date), fmtSize(p.size)];
-  });
-  resetResults("Preview: where each photo will go");
-  addSummary([["Photos selected", String(list.length)], ["Sorted by", modeLabel(mode)], ["Categories", String(counts.size)]]);
-  addTable("Photos per category", ["Category", "Photos"], [...counts.entries()].sort().map(([f, n]) => [`${SORTED_FOLDER}/${f}`, String(n)]));
-  addTable("Every photo", PHOTO_HEADERS, rows);
-  setStatus(`Preview ready: ${list.length} photo(s) would go into ${counts.size} categor${counts.size === 1 ? "y" : "ies"}. Nothing was copied.`);
-}
-
 // Copies the selected photos into  <photo folder>/Sorted/...  and shows each one as it is done.
-async function organize() {
-  const list = photos.filter((p) => p.selected);
+async function organize(choice) {
   const mode = currentMode();
+  const list = photos.filter((p) => p.selected && choice.get(categoryOf(p, mode))?.include);
   const perFolder = new Map();
   let copied = 0, failed = 0;
 
@@ -567,7 +538,7 @@ async function organize() {
   for (let i = 0; i < list.length; i++) {
     const p = list[i];
     const cat = categoryOf(p, mode);
-    const parts = [SORTED_FOLDER, ...targetParts(p, mode)];
+    const parts = [SORTED_FOLDER, ...choice.get(cat).name.split("/").map(safeName)];
     const folder = parts.join("/");
     setStatus(`Copying ${i + 1} of ${list.length}: ${p.name}  ->  ${folder}`);
     setProgress(i / list.length);
@@ -670,7 +641,83 @@ async function recognizePhotos() {
   }
   setProgress(1);
   const summary = [...counts.entries()].sort().map(([c, n]) => `${c} ${n}`).join(", ");
-  setStatus(`Recognized ${list.length} photo(s): ${summary}. Choose how to sort, then run.`);
+  setStatus(`Recognized ${list.length} photo(s): ${summary}. Press Organize photos to choose the categories.`);
+}
+
+// ------------------------------------------------------------- CHOOSER ----
+// Shown after "Organize photos" is clicked: the user picks the categories before anything is copied.
+function showChooser() {
+  const base = photos.filter((p) => p.selected);
+  const choice = new Map();   // category -> { include, name }
+  resetResults("Choose categories before sorting");
+
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = "Pick how to group the photos, untick any category you don't want sorted, and rename a folder if you like. Nothing is copied until you press Start sorting.";
+  const set = document.createElement("fieldset");
+  const lg = document.createElement("legend");
+  lg.textContent = "Group photos by";
+  set.append(lg);
+  [["category", "What is in the photo (Fruit, Animal...)"], ["date", "Date (year / month)"], ["camera", "Camera"]].forEach(([v, text]) => {
+    const l = document.createElement("label");
+    const r = document.createElement("input");
+    r.type = "radio"; r.name = "sortby"; r.value = v; r.checked = v === sortMode;
+    r.addEventListener("change", () => { sortMode = v; renderGrid(); build(); });
+    l.append(r, text);
+    set.append(l);
+  });
+  const holder = document.createElement("div");
+  holder.style.margin = "14px 0";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const go = document.createElement("button");
+  go.type = "button"; go.className = "primary";
+  const cancel = document.createElement("button");
+  cancel.type = "button"; cancel.textContent = "Cancel";
+  actions.append(go, cancel);
+  $("results").append(note, set, holder, actions);
+
+  function updateGo() {
+    const n = base.filter((p) => choice.get(categoryOf(p, sortMode))?.include).length;
+    go.textContent = `Start sorting (${n} photo${n === 1 ? "" : "s"})`;
+    go.disabled = n === 0;
+  }
+  function build() {
+    choice.clear();
+    holder.replaceChildren();
+    const counts = new Map();
+    base.forEach((p) => { const c = categoryOf(p, sortMode); counts.set(c, (counts.get(c) || 0) + 1); });
+    const wrap = document.createElement("div");
+    wrap.className = "tablewrap";
+    const table = document.createElement("table");
+    const hr = table.createTHead().insertRow();
+    ["Include", "Category", "Photos", "Folder name in Sorted"].forEach((t) => { const th = document.createElement("th"); th.textContent = t; hr.append(th); });
+    const body = table.createTBody();
+    for (const [c, n] of [...counts.entries()].sort()) {
+      const entry = { include: true, name: c };
+      choice.set(c, entry);
+      const tr = body.insertRow();
+      const box = document.createElement("input");
+      box.type = "checkbox"; box.checked = true; box.setAttribute("aria-label", "Include " + c);
+      box.addEventListener("change", () => { entry.include = box.checked; updateGo(); });
+      const name = document.createElement("input");
+      name.type = "text"; name.value = c; name.setAttribute("aria-label", "Folder name for " + c);
+      name.style.cssText = "font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:100%";
+      name.addEventListener("input", () => { entry.name = name.value.trim() || c; });
+      tr.insertCell().append(box);
+      tr.insertCell().textContent = c;
+      tr.insertCell().textContent = String(n);
+      tr.insertCell().append(name);
+    }
+    wrap.append(table);
+    holder.append(wrap);
+    updateGo();
+  }
+  go.addEventListener("click", () => busy(() => organize(choice)));
+  cancel.addEventListener("click", () => { $("results").hidden = true; setStatus("Cancelled. Nothing was copied."); });
+  build();
+  setStatus("Choose the categories you want, then press Start sorting.");
+  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 // ----------------------------------------------------------- DUPLICATES ----
@@ -838,10 +885,8 @@ $("pickSource").addEventListener("click", pickSource);
 $("order").addEventListener("change", applyOrder);
 $("selAll").addEventListener("click", () => setAll(true));
 $("selNone").addEventListener("click", () => setAll(false));
-$("preview").addEventListener("click", previewCategories);
-$("organize").addEventListener("click", () => busy(organize));
+$("organize").addEventListener("click", showChooser);
 $("dupes").addEventListener("click", () => busy(findDuplicates));
-document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", renderGrid));
 
 if (!canWrite) $("support").hidden = false;
 refreshButtons();
