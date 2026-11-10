@@ -6,36 +6,17 @@
 <title>Photo Organizer</title>
 <style>
 :root {
-  --paper: #f4f5f6;
-  --card: #ffffff;
-  --soft: #eef1f3;
-  --ink: #1f2933;
-  --muted: #616e7c;
-  --line: #d9dee3;
-  --accent: #27445c;
-  --accent-ink: #ffffff;
-  --danger: #b4432f;
+  --paper: #f4f5f6; --card: #ffffff; --soft: #eef1f3; --ink: #1f2933; --muted: #616e7c;
+  --line: #d9dee3; --accent: #27445c; --accent-ink: #ffffff; --danger: #b4432f; --ok: #2f7d4f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #16191d;
-    --card: #1f2429;
-    --soft: #171b1f;
-    --ink: #e6eaee;
-    --muted: #9aa5b1;
-    --line: #323a42;
-    --accent: #7fa8c9;
-    --accent-ink: #10161b;
-    --danger: #e0674f;
+    --paper: #16191d; --card: #1f2429; --soft: #171b1f; --ink: #e6eaee; --muted: #9aa5b1;
+    --line: #323a42; --accent: #7fa8c9; --accent-ink: #10161b; --danger: #e0674f; --ok: #6cc08b;
   }
 }
 * { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
-}
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
 main { max-width: 880px; margin: 0 auto; padding: 32px 20px 56px; }
 header { margin-bottom: 24px; }
 h1 { font-size: 1.8rem; margin: 0 0 4px; letter-spacing: -0.01em; }
@@ -43,39 +24,26 @@ h2 { font-size: 1.1rem; margin: 0 0 12px; }
 h3 { font-size: 0.95rem; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
 .lede { margin: 0; color: var(--muted); }
 .notice { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin: 0 0 16px; }
-
-/* Each step is a plain white panel */
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; margin: 0 0 16px; }
 .panel > h2 { display: flex; align-items: center; gap: 10px; }
-.panel > h2 .num {
-  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; font-weight: 600;
-}
+.panel > h2 .num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; font-weight: 600; }
 .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .path { color: var(--muted); font-size: 0.95rem; overflow-wrap: anywhere; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 10px 24px; flex-wrap: wrap; }
 legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 label { display: flex; align-items: center; gap: 8px; }
 input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
-button, select {
-  font: inherit; color: var(--ink); background: var(--card);
-  border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px; cursor: pointer;
-}
+button, select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px; cursor: pointer; }
 select { padding: 6px 10px; }
 button:hover:not(:disabled) { border-color: var(--ink); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-/* Photo preview */
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
 .toolbar .count { color: var(--muted); margin-right: auto; }
 .toolbar button { padding: 4px 12px; }
-.grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
-  max-height: 340px; overflow: auto; padding: 10px; margin: 0;
-  border: 1px solid var(--line); border-radius: 6px; background: var(--soft);
-}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 340px; overflow: auto; padding: 10px; margin: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); }
 .grid:empty { display: block; padding: 36px 10px; text-align: center; }
 .grid:empty::before { content: "No photos yet. Choose a photo folder to see a preview."; color: var(--muted); }
 .card { display: block; position: relative; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--card); }
@@ -83,15 +51,16 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .card input { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; }
 .card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--soft); }
 .card .cap { padding: 4px 6px 5px; font-size: 0.78rem; line-height: 1.3; }
-.card .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .name, .card .cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .cat { color: var(--accent); font-weight: 600; }
 .card .sub { color: var(--muted); }
 .card.off { opacity: 0.5; }
 
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }
 .hint { color: var(--muted); margin: 0 0 4px; font-size: 0.92rem; }
 #status { color: var(--muted); margin: 0; min-height: 1.5em; overflow-wrap: anywhere; }
+progress { width: 100%; height: 10px; margin: 8px 0 0; accent-color: var(--accent); }
 
-/* Results */
 #results { margin-bottom: 0; }
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 0 0 18px; }
 .summary > div { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
@@ -103,8 +72,32 @@ th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--lin
 th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--soft); }
 tbody tr:nth-child(even) td { background: var(--soft); }
 tr:last-child td { border-bottom: 0; }
-.keep td { font-weight: 600; }
 .fail td { color: var(--danger); }
+
+/* Live details */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.chip { background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; font-size: 0.85rem; }
+.chip b { color: var(--accent); }
+.stages { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 4px; }
+.stages li { color: var(--muted); }
+.stages li.now { color: var(--ink); font-weight: 600; }
+.stages li.done { color: var(--ok); }
+.stages li::before { content: "○ "; }
+.stages li.now::before { content: "● "; }
+.stages li.done::before { content: "✓ "; }
+
+/* Duplicate groups */
+.group { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 0 0 14px; background: var(--soft); }
+.group > h3 { margin: 0 0 10px; color: var(--ink); }
+.group .files { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.dup { background: var(--card); border: 2px solid var(--line); border-radius: 6px; overflow: hidden; font-size: 0.8rem; line-height: 1.35; }
+.dup.keep { border-color: var(--ok); }
+.dup img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: cover; background: var(--soft); }
+.dup .info { padding: 6px 8px 8px; overflow-wrap: anywhere; }
+.dup .tag { font-weight: 700; }
+.dup.keep .tag { color: var(--ok); }
+.dup:not(.keep) .tag { color: var(--danger); }
+.dup .why { color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -127,6 +120,7 @@ tr:last-child td { border-bottom: 0; }
         <select id="order">
           <option value="name">Name</option>
           <option value="date">Date taken</option>
+          <option value="category">Category</option>
           <option value="camera">Camera</option>
           <option value="size">Size</option>
         </select>
@@ -141,23 +135,30 @@ tr:last-child td { border-bottom: 0; }
     <h2><span class="num">2</span> Sort photos</h2>
     <fieldset>
       <legend>Sort photos</legend>
-      <label><input type="radio" name="mode" value="date" checked> By date (year / month)</label>
+      <label><input type="radio" name="mode" value="category" checked> By category (what is in the photo)</label>
+      <label><input type="radio" name="mode" value="date"> By date (year / month)</label>
       <label><input type="radio" name="mode" value="camera"> By camera</label>
     </fieldset>
+    <p class="hint" style="margin-top:10px">Photos are recognized automatically after you choose a folder (for example banana: Fruit). Each photo above shows what was detected and the folder it will go to.</p>
   </section>
 
   <section class="panel">
     <h2><span class="num">3</span> Run</h2>
     <div class="actions">
+      <button id="preview" type="button" disabled>Preview categories</button>
       <button id="organize" type="button" class="primary" disabled>Organize photos</button>
       <button id="dupes" type="button" disabled>Find duplicates</button>
     </div>
-    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed.</p>
+    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed. "Preview categories" shows where each photo would go without copying anything.</p>
     <p id="status" aria-live="polite">Choose a photo folder to see a preview of your pictures.</p>
+    <progress id="bar" max="100" value="0" hidden></progress>
   </section>
 
   <section id="results" class="panel" hidden></section>
 </main>
+<!-- Image recognition runs in the browser: TensorFlow.js + MobileNet (no API key, photos stay on this computer) -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 <script>
 "use strict";
 
@@ -165,13 +166,10 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".we
 const TAG_MAKE = 0x010f, TAG_MODEL = 0x0110, TAG_DATETIME = 0x0132,
       TAG_EXIF_IFD = 0x8769, TAG_DATETIME_ORIGINAL = 0x9003;
 
-// Sorted copies go into this folder inside the photo folder (it is skipped when scanning).
 const SORTED_FOLDER = "Sorted";
 // Which API answers "Find duplicates":
-//  - Built-in API: sw.js (a service worker next to this page) answers POST api/duplicates.
-//    It needs no server, so it works on GitHub Pages. This is the default.
-//  - app.py (Flask): used when the page is opened from http://127.0.0.1:5000, from disk (file://),
-//    or when you add  ?api=https://your-server  to the page address.
+//  - Built-in API: sw.js (service worker next to this page). Works on GitHub Pages. Default.
+//  - app.py (Flask): used from http://127.0.0.1:5000, from disk (file://), or with ?api=https://your-server
 const params = new URLSearchParams(location.search);
 const customApi = params.get("api");
 const servedByFlask = location.hostname === "127.0.0.1" && location.port === "5000";
@@ -181,7 +179,6 @@ const API_URL = customApi ? customApi.replace(/\/$/, "") + "/api/duplicates"
   : servedByFlask ? "/api/duplicates"
   : new URL("api/duplicates", location.href).href;
 
-// Start the built-in API (service worker) as soon as the page loads.
 const builtInReady = useBuiltIn && "serviceWorker" in navigator
   ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null)
   : Promise.resolve(null);
@@ -193,7 +190,7 @@ async function ensureBuiltIn() {
   if (!(await builtInReady)) {
     throw new Error("The built-in API (sw.js) could not start. Make sure sw.js is uploaded next to index.html.");
   }
-  if (!navigator.serviceWorker.controller) {   // first visit: wait for sw.js to take control
+  if (!navigator.serviceWorker.controller) {
     await new Promise((done) => {
       navigator.serviceWorker.addEventListener("controllerchange", done, { once: true });
       setTimeout(done, 3000);
@@ -203,7 +200,7 @@ async function ensureBuiltIn() {
 
 const $ = (id) => document.getElementById(id);
 const canWrite = "showDirectoryPicker" in window;
-let source = null;      // { name, handle? }
+let source = null;
 let photos = [];        // { name, path, parent?, file, size, date, camera, selected, url }
 let working = false;
 
@@ -218,12 +215,23 @@ function fmtSize(n) {
   return (n / 1073741824).toFixed(2) + " GB";
 }
 const setStatus = (msg) => { $("status").textContent = msg; };
+const currentMode = () => document.querySelector('input[name="mode"]:checked').value;
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));   // lets the page repaint
+
+function setProgress(value) {   // value 0..1, or null to hide, or "wait" for the moving bar
+  const bar = $("bar");
+  if (value === null) { bar.hidden = true; return; }
+  bar.hidden = false;
+  if (value === "wait") bar.removeAttribute("value");
+  else bar.value = Math.round(value * 100);
+}
 
 function refreshButtons() {
   const anySelected = photos.some((p) => p.selected);
   $("pickSource").disabled = working;
   $("selAll").disabled = working || !photos.length;
   $("selNone").disabled = working || !photos.length;
+  $("preview").disabled = working || !anySelected;
   $("organize").disabled = working || !canWrite || !anySelected;
   $("dupes").disabled = working || !anySelected;
 }
@@ -233,6 +241,7 @@ async function busy(fn) {
   refreshButtons();
   try { await fn(); }
   catch (err) { setStatus("Error: " + (err && err.message ? err.message : err)); }
+  setProgress(null);
   working = false;
   refreshButtons();
 }
@@ -241,7 +250,7 @@ async function busy(fn) {
 async function walk(dirHandle, prefix, out) {
   for await (const [name, handle] of dirHandle.entries()) {
     if (handle.kind === "directory") {
-      if (prefix === "" && name === SORTED_FOLDER) continue;   // never scan our own output
+      if (prefix === "" && name === SORTED_FOLDER) continue;
       await walk(handle, prefix + name + "/", out);
     } else if (IMAGE_EXTENSIONS.has(extOf(name))) {
       out.push({ name, path: prefix + name, parent: dirHandle, handle });
@@ -249,7 +258,6 @@ async function walk(dirHandle, prefix, out) {
   }
 }
 
-// Minimal EXIF reader (JPEG). Returns { make, model, date } where present.
 function parseExif(buf) {
   const v = new DataView(buf);
   if (v.getUint16(0) !== 0xffd8) return {};
@@ -300,18 +308,16 @@ function parseTiff(v, start) {
   };
 }
 
-// Returns { date, camera }. Date falls back to the file's modified time.
 async function readMetadata(file) {
   let date = null, camera = null;
   try {
     const info = parseExif(await file.slice(0, 131072).arrayBuffer());
     const { make = "", model = "" } = info;
     if (make || model) {
-      // Avoid "Canon Canon EOS" when the model already contains the make
       camera = make && model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`.trim();
     }
     date = info.date && !isNaN(info.date) ? info.date : null;
-  } catch (_) { /* unreadable metadata: fall back below */ }
+  } catch (_) {}
   if (!date) date = new Date(file.lastModified);
   return { date, camera: camera || "Unknown Camera" };
 }
@@ -324,7 +330,7 @@ async function loadPhotos(entries) {
   let skipped = 0;
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
-    if (i % 10 === 0) setStatus(`Reading photos... ${i + 1} of ${entries.length}`);
+    if (i % 10 === 0) { setStatus(`Reading photos... ${i + 1} of ${entries.length}`); setProgress(i / entries.length); }
     try {
       const file = e.file || await e.handle.getFile();
       const meta = await readMetadata(file);
@@ -345,6 +351,7 @@ function applyOrder() {
     name: (a, b) => (a.path < b.path ? -1 : 1),
     date: (a, b) => a.date - b.date || (a.path < b.path ? -1 : 1),
     camera: (a, b) => a.camera.localeCompare(b.camera) || (a.path < b.path ? -1 : 1),
+    category: (a, b) => (a.category || "").localeCompare(b.category || "") || (a.path < b.path ? -1 : 1),
     size: (a, b) => b.size - a.size,
   };
   photos.sort(by[key]);
@@ -359,6 +366,7 @@ function updateCount() {
 
 function renderGrid() {
   const grid = $("grid");
+  const mode = currentMode();
   grid.replaceChildren();
   for (const p of photos) {
     const card = document.createElement("label");
@@ -371,17 +379,23 @@ function renderGrid() {
     img.loading = "lazy";
     img.alt = p.name;
     img.src = p.url;
-    img.addEventListener("error", () => { img.removeAttribute("src"); });   // e.g. TIFF can't be shown by browsers
+    img.addEventListener("error", () => { img.removeAttribute("src"); });
     const cap = document.createElement("div");
     cap.className = "cap";
     const name = document.createElement("div");
     name.className = "name";
     name.textContent = p.name;
     name.title = p.path;
+    const cat = document.createElement("div");
+    cat.className = "cat";
+    const det = document.createElement("div");
+    det.className = "sub name";
+    p.catEl = cat; p.detEl = det;
+    updateCard(p);
     const sub = document.createElement("div");
     sub.className = "sub";
-    sub.textContent = `${p.date.getFullYear()}-${pad(p.date.getMonth() + 1)}-${pad(p.date.getDate())} · ${fmtSize(p.size)}`;
-    cap.append(name, sub);
+    sub.textContent = `${fmtDate(p.date).slice(0, 10)} · ${fmtSize(p.size)}`;
+    cap.append(name, cat, det, sub);
     card.append(box, img, cap);
     grid.append(card);
   }
@@ -403,7 +417,7 @@ function resetResults(title) {
   box.append(h);
 }
 
-function addSummary(pairs) {
+function makeSummary(pairs) {
   const dl = document.createElement("dl");
   dl.className = "summary";
   for (const [k, v] of pairs) {
@@ -415,10 +429,11 @@ function addSummary(pairs) {
     wrap.append(dt, dd);
     dl.append(wrap);
   }
-  $("results").append(dl);
+  return dl;
 }
+const addSummary = (pairs) => $("results").append(makeSummary(pairs));
 
-// rows: array of arrays of strings; a row can be { cells, className }
+// Returns { body, wrap } so rows can be added live. A row can be an array or { cells, className }.
 function addTable(title, headers, rows) {
   if (title) {
     const h = document.createElement("h3");
@@ -435,14 +450,17 @@ function addTable(title, headers, rows) {
     head.append(th);
   }
   const body = table.createTBody();
-  for (const row of rows) {
-    const cells = Array.isArray(row) ? row : row.cells;
-    const tr = body.insertRow();
-    if (!Array.isArray(row) && row.className) tr.className = row.className;
-    for (const text of cells) tr.insertCell().textContent = text;
-  }
+  for (const row of rows) addRow(body, row);
   wrap.append(table);
   $("results").append(wrap);
+  return { body, wrap };
+}
+
+function addRow(body, row) {
+  const cells = Array.isArray(row) ? row : row.cells;
+  const tr = body.insertRow();
+  if (!Array.isArray(row) && row.className) tr.className = row.className;
+  for (const text of cells) tr.insertCell().textContent = text;
 }
 
 function addNote(text) {
@@ -451,19 +469,37 @@ function addNote(text) {
   $("results").append(p);
 }
 
+// Category counters ("2024/2024-05: 12") shown as chips
+function renderChips(el, counts) {
+  el.replaceChildren();
+  for (const [folder, n] of [...counts.entries()].sort()) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    const b = document.createElement("b");
+    b.textContent = n;
+    chip.append(folder + ": ", b);
+    el.append(chip);
+  }
+}
+
 // -------------------------------------------------------------- PROCESS ----
 function safeName(text) {
   const s = text.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/^[ .]+|[ .]+$/g, "");
   return s || "Unknown";
 }
 
-function targetParts(date, camera, mode) {
+function targetParts(p, mode) {
+  const date = p.date, camera = p.camera;
+  if (mode === "category") return [safeName(p.category || "Unrecognized")];
   if (mode === "date") {
     const y = String(date.getFullYear());
     return [y, `${y}-${pad(date.getMonth() + 1)}`];
   }
   return [safeName(camera)];
 }
+
+// The category of a photo = its folder inside "Sorted"
+const categoryOf = (p, mode) => targetParts(p, mode).join("/");
 
 async function getDir(root, parts) {
   let dir = root;
@@ -476,7 +512,6 @@ async function exists(dir, name) {
   catch (e) { if (e.name === "NotFoundError") return false; throw e; }
 }
 
-// If the name exists, add _1, _2 ... so nothing is overwritten. Returns the name used.
 async function uniqueName(dir, name) {
   if (!(await exists(dir, name))) return name;
   const i = name.lastIndexOf(".");
@@ -495,54 +530,234 @@ async function copyInto(dir, name, file) {
   return finalName;
 }
 
-// Copies the selected photos into  <photo folder>/Sorted/...  (originals are never touched).
+const modeLabel = (mode) => ({ category: "Category (what is in the photo)", date: "Date (year / month)", camera: "Camera" }[mode]);
+const PHOTO_HEADERS = ["Photo", "Category", "Detected", "Camera", "Date taken", "Size"];
+const detected = (p) => (p.label ? `${p.label} (${Math.round(p.conf * 100)}%)` : "-");
+
+// Shows where every selected photo WOULD go. Nothing is copied.
+function previewCategories() {
+  const list = photos.filter((p) => p.selected);
+  const mode = currentMode();
+  const counts = new Map();
+  const rows = list.map((p) => {
+    const cat = categoryOf(p, mode);
+    counts.set(cat, (counts.get(cat) || 0) + 1);
+    return [p.path, `${SORTED_FOLDER}/${cat}`, detected(p), p.camera, fmtDate(p.date), fmtSize(p.size)];
+  });
+  resetResults("Preview: where each photo will go");
+  addSummary([["Photos selected", String(list.length)], ["Sorted by", modeLabel(mode)], ["Categories", String(counts.size)]]);
+  addTable("Photos per category", ["Category", "Photos"], [...counts.entries()].sort().map(([f, n]) => [`${SORTED_FOLDER}/${f}`, String(n)]));
+  addTable("Every photo", PHOTO_HEADERS, rows);
+  setStatus(`Preview ready: ${list.length} photo(s) would go into ${counts.size} categor${counts.size === 1 ? "y" : "ies"}. Nothing was copied.`);
+}
+
+// Copies the selected photos into  <photo folder>/Sorted/...  and shows each one as it is done.
 async function organize() {
   const list = photos.filter((p) => p.selected);
-  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const mode = currentMode();
   const perFolder = new Map();
-  const rows = [];
   let copied = 0, failed = 0;
-  resetResults("Organize results");
+
+  resetResults("Organizing... (live details)");
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  $("results").append(chips);
+  const log = addTable("Live log", [...PHOTO_HEADERS, "Result"], []);
+
   for (let i = 0; i < list.length; i++) {
     const p = list[i];
-    setStatus(`Copying ${i + 1} of ${list.length}: ${p.name}`);
-    const parts = [SORTED_FOLDER, ...targetParts(p.date, p.camera, mode)];
+    const cat = categoryOf(p, mode);
+    const parts = [SORTED_FOLDER, ...targetParts(p, mode)];
     const folder = parts.join("/");
+    setStatus(`Copying ${i + 1} of ${list.length}: ${p.name}  ->  ${folder}`);
+    setProgress(i / list.length);
+    const info = [p.path, cat, detected(p), p.camera, fmtDate(p.date), fmtSize(p.size)];
     try {
       const dir = await getDir(source.handle, parts);
       const finalName = await copyInto(dir, p.name, p.file);
       copied++;
-      perFolder.set(folder, (perFolder.get(folder) || 0) + 1);
-      rows.push([p.path, p.camera, fmtDate(p.date), fmtSize(p.size), `Copied to ${folder}/${finalName}`]);
+      perFolder.set(cat, (perFolder.get(cat) || 0) + 1);
+      addRow(log.body, [...info, `Copied as ${finalName}`]);
     } catch (err) {
       failed++;
-      rows.push({ cells: [p.path, p.camera, fmtDate(p.date), fmtSize(p.size), `Failed: ${err.message || err}`], className: "fail" });
+      addRow(log.body, { cells: [...info, `Failed: ${err.message || err}`], className: "fail" });
     }
+    renderChips(chips, perFolder);
+    log.wrap.scrollTop = log.wrap.scrollHeight;
+    await nextFrame();
   }
-  $("results").replaceChildren();
-  resetResults("Organize results");
-  addSummary([
+
+  setProgress(1);
+  $("results").querySelector("h2").textContent = "Organize results";
+  $("results").querySelector("h2").after(makeSummary([
     ["Photos selected", String(list.length)],
     ["Copied", String(copied)],
     ["Failed", String(failed)],
-    ["Sorted by", mode === "date" ? "Date (year / month)" : "Camera"],
-    ["Folders used", String(perFolder.size)],
+    ["Sorted by", modeLabel(mode)],
+    ["Categories used", String(perFolder.size)],
     ["Saved in", `${source.name}/${SORTED_FOLDER}`],
-  ]);
-  addTable("Photos per folder", ["Folder", "Photos"],
-    [...perFolder.entries()].sort().map(([f, n]) => [f, String(n)]));
-  addTable("Every photo", ["Photo", "Camera", "Date taken", "Size", "Result"], rows);
-  setStatus(`Done. ${copied} photo(s) copied into ${perFolder.size} folder(s)` + (failed ? `, ${failed} failed.` : "."));
+  ]));
+  setStatus(`Done. ${copied} photo(s) copied into ${perFolder.size} categor${perFolder.size === 1 ? "y" : "ies"}` + (failed ? `, ${failed} failed.` : "."));
 }
 
-// Sends the selected photos to the API, which returns the groups of identical files.
+// ---------------------------------------------------------- RECOGNITION ----
+// MobileNet names things very specifically ("Granny Smith", "golden retriever").
+// These rules turn those names into broad categories (Fruit, Animal, ...).
+const CATEGORY_RULES = [
+  ["Fruit", /banana|orange|lemon|pineapple|ananas|strawberry|pomegranate|\bfig\b|jackfruit|custard apple|granny smith|\bapple\b/],
+  ["Vegetable", /broccoli|cauliflower|zucchini|courgette|squash|cucumber|artichoke|bell pepper|cardoon|mushroom|head cabbage|\bcorn\b/],
+  ["Food", /pizza|burger|hotdog|hot dog|ice cream|ice lolly|bagel|pretzel|loaf|dough|burrito|guacamole|carbonara|trifle|potpie|espresso|eggnog/],
+  ["Animal", /terrier|retriever|hound|spaniel|setter|pointer|poodle|shepherd|collie|husky|malamute|bulldog|boxer|mastiff|schnauzer|pinscher|chihuahua|corgi|\bpug\b|beagle|rottweiler|great dane|dalmatian|samoyed|pomeranian|pyrenees|newfoundland|saint bernard|eskimo dog|dingo|\bwolf\b|\bfox\b|malinois|kelpie|maltese|shih-tzu|pekinese|lhasa|leonberg|bernese|whippet|greyhound|borzoi|saluki|weimaraner|vizsla|keeshond|papillon|basenji/],
+  ["Animal", /\b(cat|dog|tabby|tiger|lion|lynx|cougar|leopard|jaguar|cheetah|bear|panda|zebra|horse|sorrel|ox|bison|ram|sheep|goat|gazelle|camel|llama|monkey|ape|gorilla|chimpanzee|orangutan|gibbon|baboon|macaque|squirrel|hamster|rabbit|hare|beaver|otter|seal|whale|dolphin|shark|fish|goldfish|turtle|tortoise|lizard|gecko|iguana|snake|python|cobra|crocodile|alligator|frog|toad|spider|beetle|butterfly|bee|ant|fly|dragonfly|cricket|mantis|crab|lobster|snail|slug|jellyfish|hog|pig|boar|elephant|hippopotamus|rhinoceros|giraffe|deer|moose|fox|bird|owl|eagle|kite|vulture|hen|cock|peacock|goose|swan|duck|flamingo|pelican|penguin|albatross|parrot|macaw|cockatoo|toucan|hummingbird|jay|magpie|robin|finch|quail|partridge|grouse|ostrich|heron|stork|ibis)\b/],
+  ["Vehicle", /\b(car|cab|taxi|jeep|limousine|minivan|van|truck|pickup|bus|minibus|trolleybus|scooter|moped|bicycle|bike|tricycle|unicycle|motorcycle|locomotive|train|streetcar|airliner|warplane|airship|boat|canoe|ship|liner|yawl|gondola|speedboat|submarine|catamaran|trimaran|schooner|fireboat|lifeboat|tractor|ambulance|racer|go-kart|snowmobile|forklift|wagon|convertible|trailer)\b/],
+  ["Flower", /daisy|lady's slipper|rapeseed|\bflower\b/],
+  ["Landscape", /\b(alp|volcano|valley|cliff|promontory|seashore|sandbar|lakeside|coral reef|geyser)\b/],
+  ["Building", /palace|castle|church|monastery|mosque|cathedral|barn|boathouse|library|cinema|lighthouse|bridge|\bdam\b|\bpier\b|triumphal arch|obelisk|stupa|patio|\bhouse\b|fountain|viaduct|planetarium|\bmall\b|\bshop\b/],
+  ["Electronics", /laptop|notebook|desktop computer|monitor|\bscreen|television|cellular|\bipod\b|\bmouse\b|keyboard|remote control|printer|modem|projector|camera|joystick|hard disc|\bradio\b|loudspeaker|microphone|\bphone\b|telephone/],
+  ["Furniture", /\b(chair|couch|sofa|table|desk|bookcase|wardrobe|bed|crib|cradle|throne|four-poster|cabinet|chiffonier|lamp|lampshade|bassinet)\b/],
+  ["Clothing", /jersey|sweatshirt|\bjean|skirt|cardigan|\bsuit\b|coat|pajama|\bsock|\bshoe|sandal|loafer|\bboot|\bhat\b|sombrero|bonnet|bikini|swimming trunks|\bgown|\bdress|backpack|\bpurse|\bwallet|sunglass|bow tie|kimono|poncho|diaper/],
+];
+function categorize(name) {
+  const n = name.toLowerCase();
+  for (const [cat, re] of CATEGORY_RULES) if (re.test(n)) return cat;
+  return null;
+}
+const nice = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function updateCard(p) {
+  if (!p.catEl) return;
+  const cat = categoryOf(p, currentMode());
+  p.catEl.textContent = cat;
+  p.catEl.title = "Category: " + cat;
+  p.detEl.textContent = p.label ? `Detected: ${p.label} (${Math.round(p.conf * 100)}%)` : "";
+}
+
+let model = null;
+async function recognizePhotos() {
+  const list = [...photos];
+  if (!list.length) return;
+  setProgress("wait");
+  setStatus("Loading the recognition model (only the first time)...");
+  try {
+    if (typeof mobilenet === "undefined") throw new Error("the recognition library did not load. Check your internet connection and reload the page");
+    if (!model) model = await mobilenet.load();
+  } catch (err) {
+    list.forEach((p) => { p.category = "Unrecognized"; updateCard(p); });
+    setStatus("Recognition is not available: " + (err.message || err) + ". Photos go to 'Unrecognized' until it works.");
+    return;
+  }
+  const counts = new Map();
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    setStatus(`Recognizing ${i + 1} of ${list.length}: ${p.name}`);
+    setProgress(i / list.length);
+    try {
+      const img = new Image();
+      img.src = p.url;
+      await img.decode();
+      const preds = await model.classify(img, 3);
+      const hit = preds.find((x) => x.probability >= 0.08 && categorize(x.className));
+      const best = hit || preds[0];
+      p.label = nice(best.className.split(",")[0].trim());
+      p.conf = best.probability;
+      p.category = hit ? categorize(hit.className) : "Other";
+    } catch (_) {
+      p.label = null; p.category = "Unrecognized";   // e.g. a format the browser cannot open
+    }
+    counts.set(p.category, (counts.get(p.category) || 0) + 1);
+    updateCard(p);
+    await nextFrame();
+  }
+  setProgress(1);
+  const summary = [...counts.entries()].sort().map(([c, n]) => `${c} ${n}`).join(", ");
+  setStatus(`Recognized ${list.length} photo(s): ${summary}. Choose how to sort, then run.`);
+}
+
+// ----------------------------------------------------------- DUPLICATES ----
+// Same copy-name rule as app.py / sw.js, used here only to explain each decision.
+const looksLikeCopy = (name) => /(^copy of |[ _-]copy( ?\(\d+\))?$| \(\d+\)$|_\d+$)/i.test(name.replace(/\.[^.]+$/, ""));
+
+function reasonFor(f, keep) {
+  if (f.keep) return looksLikeCopy(f.name) ? "Kept: first in the group" : "Kept: original-looking name, shortest or oldest";
+  if (looksLikeCopy(f.name) && !looksLikeCopy(keep.name)) return "Duplicate: the name looks like a copy";
+  if (f.name.length > keep.name.length) return "Duplicate: longer name than the kept file";
+  if (f.last_modified > keep.last_modified) return "Duplicate: newer than the kept file";
+  return "Duplicate: identical content, sorted later";
+}
+
+function showStages(names) {
+  const ol = document.createElement("ol");
+  ol.className = "stages";
+  names.forEach((n) => { const li = document.createElement("li"); li.textContent = n; ol.append(li); });
+  $("results").append(ol);
+  const lis = [...ol.children];
+  return (index, note) => {
+    lis.forEach((li, i) => { li.className = i < index ? "done" : i === index ? "now" : ""; });
+    if (note && lis[index]) lis[index].textContent = note;
+  };
+}
+
+function groupBlock(g, i, byPath) {
+  const box = document.createElement("div");
+  box.className = "group";
+  const h = document.createElement("h3");
+  h.textContent = `Group ${i + 1}: ${g.files.length} identical files, ${fmtSize(g.size)} each (fingerprint ${g.hash})`;
+  const files = document.createElement("div");
+  files.className = "files";
+  const keep = g.files.find((f) => f.keep) || g.files[0];
+  for (const f of g.files) {
+    const p = byPath.get(f.path);
+    const card = document.createElement("div");
+    card.className = "dup" + (f.keep ? " keep" : "");
+    const img = document.createElement("img");
+    img.alt = f.name;
+    if (p) { img.src = p.url; img.addEventListener("error", () => img.removeAttribute("src")); }
+    const info = document.createElement("div");
+    info.className = "info";
+    const lines = [
+      [f.keep ? "KEEP" : "DUPLICATE", "tag"],
+      [f.path, ""],
+      [`${fmtSize(f.size)} · modified ${fmtDate(new Date(f.last_modified))}`, ""],
+      [p ? `Camera: ${p.camera} · taken ${fmtDate(p.date)}` : "", ""],
+      [reasonFor(f, keep), "why"],
+    ];
+    for (const [text, cls] of lines) {
+      if (!text) continue;
+      const d = document.createElement("div");
+      d.textContent = text;
+      if (cls) d.className = cls;
+      info.append(d);
+    }
+    card.append(img, info);
+    files.append(card);
+  }
+  box.append(h, files);
+  return box;
+}
+
 async function findDuplicates() {
   const list = photos.filter((p) => p.selected);
+  const byPath = new Map(list.map((p) => [p.path, p]));
+  resetResults("Finding duplicates... (live details)");
+  const stage = showStages(["Step 1: Check file sizes", "Step 2: Compare fingerprints (SHA-256)", "Step 3: Build duplicate groups"]);
+
+  // Step 1: files with a different size can't be identical (same rule the API uses)
+  stage(0);
+  setProgress(0.1);
+  setStatus(`Step 1 of 3: checking the sizes of ${list.length} photo(s)...`);
+  await nextFrame();
+  const sizes = new Map();
+  list.forEach((p) => sizes.set(p.size, (sizes.get(p.size) || 0) + 1));
+  const candidates = list.filter((p) => sizes.get(p.size) > 1).length;
+  stage(0, `Step 1: Check file sizes (${candidates} of ${list.length} photos share a size with another photo)`);
+
+  // Step 2: the API hashes only those candidates
+  stage(1);
+  setProgress("wait");
+  setStatus(`Step 2 of 3: sending ${list.length} photo(s) to the API and comparing ${candidates} candidate(s)...`);
   const form = new FormData();
   form.append("manifest", JSON.stringify(list.map((p) => ({ path: p.path, lastModified: p.file.lastModified }))));
   for (const p of list) form.append("files", p.file, p.name);
-
-  setStatus(`Sending ${list.length} photo(s) to the API...`);
   if (useBuiltIn) await ensureBuiltIn();
   let res;
   try { res = await fetch(API_URL, { method: "POST", body: form }); }
@@ -558,29 +773,33 @@ async function findDuplicates() {
     throw new Error(msg);
   }
   const data = await res.json();
+  stage(1, `Step 2: Compare fingerprints (SHA-256) (${candidates} photo(s) compared)`);
 
-  resetResults("Duplicate results");
-  addSummary([
+  // Step 3: show the groups
+  stage(2);
+  setProgress(0.9);
+  await nextFrame();
+  const unique = data.total_files - data.groups.reduce((n, g) => n + g.files.length, 0);
+  stage(3, null);
+  $("results").querySelector("h2").textContent = "Duplicate results";
+  $("results").append(makeSummary([
     ["Photos checked", String(data.total_files)],
     ["Duplicate groups", String(data.groups.length)],
     ["Extra copies", String(data.extra_copies)],
     ["Space used by extras", fmtSize(data.wasted_bytes)],
-  ]);
+    ["Photos with no duplicate", String(unique)],
+  ]));
   if (!data.groups.length) {
     addNote("No duplicates found. Every selected photo is different.");
+    setProgress(1);
     setStatus("Done. No duplicates found.");
     return;
   }
-  const rows = [];
-  data.groups.forEach((g, i) => {
-    g.files.forEach((f) => rows.push({
-      cells: [`Group ${i + 1}`, f.keep ? "Keep" : "Duplicate", f.path, fmtSize(f.size),
-              fmtDate(new Date(f.last_modified)), g.hash],
-      className: f.keep ? "keep" : "",
-    }));
-  });
-  addTable("Files in each group (the first file is the one to keep)",
-    ["Group", "Status", "File", "Size", "Modified", "Fingerprint"], rows);
+  const h = document.createElement("h3");
+  h.textContent = "Each group: the first file is the one to keep";
+  $("results").append(h);
+  data.groups.forEach((g, i) => $("results").append(groupBlock(g, i, byPath)));
+  setProgress(1);
   setStatus(`Done. ${data.groups.length} group(s), ${data.extra_copies} extra copy/copies.`);
 }
 
@@ -589,7 +808,7 @@ async function pickSource() {
   if (canWrite) {
     let handle;
     try { handle = await window.showDirectoryPicker({ mode: "readwrite" }); }
-    catch (_) { return; }   // cancelled
+    catch (_) { return; }
     source = { name: handle.name, handle };
     $("sourceName").textContent = handle.name;
     await busy(async () => {
@@ -597,10 +816,10 @@ async function pickSource() {
       const found = [];
       await walk(handle, "", found);
       await loadPhotos(found);
+      await recognizePhotos();
     });
     return;
   }
-  // Fallback for browsers without the folder API: read-only picker
   const input = document.createElement("input");
   input.type = "file";
   input.webkitdirectory = true;
@@ -610,7 +829,7 @@ async function pickSource() {
       .filter((e) => IMAGE_EXTENSIONS.has(extOf(e.name)) && !e.path.startsWith(SORTED_FOLDER + "/"));
     source = { name: "(selected folder)" };
     $("sourceName").textContent = `${found.length} photo(s) selected`;
-    busy(() => loadPhotos(found));
+    busy(async () => { await loadPhotos(found); await recognizePhotos(); });
   };
   input.click();
 }
@@ -619,8 +838,10 @@ $("pickSource").addEventListener("click", pickSource);
 $("order").addEventListener("change", applyOrder);
 $("selAll").addEventListener("click", () => setAll(true));
 $("selNone").addEventListener("click", () => setAll(false));
+$("preview").addEventListener("click", previewCategories);
 $("organize").addEventListener("click", () => busy(organize));
 $("dupes").addEventListener("click", () => busy(findDuplicates));
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", renderGrid));
 
 if (!canWrite) $("support").hidden = false;
 refreshButtons();
