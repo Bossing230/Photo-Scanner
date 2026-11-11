@@ -45,6 +45,8 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp"}
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
+from classify_api import bp as classify_bp
+app.register_blueprint(classify_bp) 
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 * 1024  # 2 GB per request
 
 

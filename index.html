@@ -98,6 +98,7 @@ tr:last-child td { border-bottom: 0; }
 .dup.keep .tag { color: var(--ok); }
 .dup:not(.keep) .tag { color: var(--danger); }
 .dup .why { color: var(--muted); font-style: italic; }
+.dup .catline { font-weight: 700; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -105,6 +106,7 @@ tr:last-child td { border-bottom: 0; }
   <header>
     <h1>Photo Organizer</h1>
     <p class="lede">Sort photos into folders by date or camera, and find duplicate files.</p>
+    <p class="hint">Version 8: Sorted, then date or camera, then category.</p>
   </header>
   <p id="support" class="notice" hidden>This browser can't write to folders. Use Chrome or Edge to organize files; here you can still preview photos and find duplicates.</p>
 
@@ -127,6 +129,7 @@ tr:last-child td { border-bottom: 0; }
       </label>
       <button id="selAll" type="button" disabled>Select all</button>
       <button id="selNone" type="button" disabled>Select none</button>
+      <button id="recog" type="button" disabled>Recognize again</button>
     </div>
     <div id="grid" class="grid" aria-label="Photo preview"></div>
   </section>
@@ -137,16 +140,13 @@ tr:last-child td { border-bottom: 0; }
       <button id="organize" type="button" class="primary" disabled>Organize photos</button>
       <button id="dupes" type="button" disabled>Find duplicates</button>
     </div>
-    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed. After you click Organize photos you choose the categories before anything is sorted.</p>
+    <p class="hint">Organizing copies the selected photos into a "Sorted" folder inside your photo folder. Your originals are not changed. After you click Organize photos you choose date or camera and check the categories before anything is sorted.</p>
     <p id="status" aria-live="polite">Choose a photo folder to see a preview of your pictures.</p>
     <progress id="bar" max="100" value="0" hidden></progress>
   </section>
 
   <section id="results" class="panel" hidden></section>
 </main>
-<!-- Image recognition runs in the browser: TensorFlow.js + MobileNet (no API key, photos stay on this computer) -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 <script>
 "use strict";
 
@@ -203,7 +203,7 @@ function fmtSize(n) {
   return (n / 1073741824).toFixed(2) + " GB";
 }
 const setStatus = (msg) => { $("status").textContent = msg; };
-let sortMode = "category";   // category | date | camera, chosen after clicking Organize photos
+let sortMode = "date";   // date | camera: the first folder level, chosen after clicking Organize photos
 const currentMode = () => sortMode;
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));   // lets the page repaint
 
@@ -220,6 +220,7 @@ function refreshButtons() {
   $("pickSource").disabled = working;
   $("selAll").disabled = working || !photos.length;
   $("selNone").disabled = working || !photos.length;
+  $("recog").disabled = working || !photos.length;
   $("organize").disabled = working || !canWrite || !anySelected;
   $("dupes").disabled = working || !anySelected;
 }
@@ -476,17 +477,16 @@ function safeName(text) {
   return s || "Unknown";
 }
 
+// Folder path inside "Sorted": first level (date or camera), then the category.
+// Example: 2026/2026-10/Meat  or  Canon EOS R5/Meat
 function targetParts(p, mode) {
-  const date = p.date, camera = p.camera;
-  if (mode === "category") return [safeName(p.category || "Unrecognized")];
-  if (mode === "date") {
-    const y = String(date.getFullYear());
-    return [y, `${y}-${pad(date.getMonth() + 1)}`];
-  }
-  return [safeName(camera)];
+  const category = safeName(p.category || "Unrecognized");
+  if (mode === "camera") return [safeName(p.camera), category];
+  const y = String(p.date.getFullYear());
+  return [y, `${y}-${pad(p.date.getMonth() + 1)}`, category];
 }
 
-// The category of a photo = its folder inside "Sorted"
+// The folder of a photo inside "Sorted"
 const categoryOf = (p, mode) => targetParts(p, mode).join("/");
 
 async function getDir(root, parts) {
@@ -518,7 +518,7 @@ async function copyInto(dir, name, file) {
   return finalName;
 }
 
-const modeLabel = (mode) => ({ category: "Category (what is in the photo)", date: "Date (year / month)", camera: "Camera" }[mode]);
+const modeLabel = (mode) => ({ date: "Date (year / month), then category", camera: "Camera, then category" }[mode]);
 const PHOTO_HEADERS = ["Photo", "Category", "Detected", "Camera", "Date taken", "Size"];
 const detected = (p) => (p.label ? `${p.label} (${Math.round(p.conf * 100)}%)` : "-");
 
@@ -542,13 +542,13 @@ async function organize(choice) {
     const folder = parts.join("/");
     setStatus(`Copying ${i + 1} of ${list.length}: ${p.name}  ->  ${folder}`);
     setProgress(i / list.length);
-    const info = [p.path, cat, detected(p), p.camera, fmtDate(p.date), fmtSize(p.size)];
+    const info = [p.path, p.category || "Unrecognized", detected(p), p.camera, fmtDate(p.date), fmtSize(p.size)];
     try {
       const dir = await getDir(source.handle, parts);
       const finalName = await copyInto(dir, p.name, p.file);
       copied++;
       perFolder.set(cat, (perFolder.get(cat) || 0) + 1);
-      addRow(log.body, [...info, `Copied as ${finalName}`]);
+      addRow(log.body, [...info, `Copied to ${folder}/${finalName}`]);
     } catch (err) {
       failed++;
       addRow(log.body, { cells: [...info, `Failed: ${err.message || err}`], className: "fail" });
@@ -565,109 +565,188 @@ async function organize(choice) {
     ["Copied", String(copied)],
     ["Failed", String(failed)],
     ["Sorted by", modeLabel(mode)],
-    ["Categories used", String(perFolder.size)],
+    ["Folders used", String(perFolder.size)],
     ["Saved in", `${source.name}/${SORTED_FOLDER}`],
   ]));
   setStatus(`Done. ${copied} photo(s) copied into ${perFolder.size} categor${perFolder.size === 1 ? "y" : "ies"}` + (failed ? `, ${failed} failed.` : "."));
 }
 
 // ---------------------------------------------------------- RECOGNITION ----
-// MobileNet names things very specifically ("Granny Smith", "golden retriever").
-// These rules turn those names into broad categories (Fruit, Animal, ...).
-const CATEGORY_RULES = [
-  ["Fruit", /banana|orange|lemon|pineapple|ananas|strawberry|pomegranate|\bfig\b|jackfruit|custard apple|granny smith|\bapple\b/],
-  ["Vegetable", /broccoli|cauliflower|zucchini|courgette|squash|cucumber|artichoke|bell pepper|cardoon|mushroom|head cabbage|\bcorn\b/],
-  ["Food", /pizza|burger|hotdog|hot dog|ice cream|ice lolly|bagel|pretzel|loaf|dough|burrito|guacamole|carbonara|trifle|potpie|espresso|eggnog/],
-  ["Animal", /terrier|retriever|hound|spaniel|setter|pointer|poodle|shepherd|collie|husky|malamute|bulldog|boxer|mastiff|schnauzer|pinscher|chihuahua|corgi|\bpug\b|beagle|rottweiler|great dane|dalmatian|samoyed|pomeranian|pyrenees|newfoundland|saint bernard|eskimo dog|dingo|\bwolf\b|\bfox\b|malinois|kelpie|maltese|shih-tzu|pekinese|lhasa|leonberg|bernese|whippet|greyhound|borzoi|saluki|weimaraner|vizsla|keeshond|papillon|basenji/],
-  ["Animal", /\b(cat|dog|tabby|tiger|lion|lynx|cougar|leopard|jaguar|cheetah|bear|panda|zebra|horse|sorrel|ox|bison|ram|sheep|goat|gazelle|camel|llama|monkey|ape|gorilla|chimpanzee|orangutan|gibbon|baboon|macaque|squirrel|hamster|rabbit|hare|beaver|otter|seal|whale|dolphin|shark|fish|goldfish|turtle|tortoise|lizard|gecko|iguana|snake|python|cobra|crocodile|alligator|frog|toad|spider|beetle|butterfly|bee|ant|fly|dragonfly|cricket|mantis|crab|lobster|snail|slug|jellyfish|hog|pig|boar|elephant|hippopotamus|rhinoceros|giraffe|deer|moose|fox|bird|owl|eagle|kite|vulture|hen|cock|peacock|goose|swan|duck|flamingo|pelican|penguin|albatross|parrot|macaw|cockatoo|toucan|hummingbird|jay|magpie|robin|finch|quail|partridge|grouse|ostrich|heron|stork|ibis)\b/],
-  ["Vehicle", /\b(car|cab|taxi|jeep|limousine|minivan|van|truck|pickup|bus|minibus|trolleybus|scooter|moped|bicycle|bike|tricycle|unicycle|motorcycle|locomotive|train|streetcar|airliner|warplane|airship|boat|canoe|ship|liner|yawl|gondola|speedboat|submarine|catamaran|trimaran|schooner|fireboat|lifeboat|tractor|ambulance|racer|go-kart|snowmobile|forklift|wagon|convertible|trailer)\b/],
-  ["Flower", /daisy|lady's slipper|rapeseed|\bflower\b/],
-  ["Landscape", /\b(alp|volcano|valley|cliff|promontory|seashore|sandbar|lakeside|coral reef|geyser)\b/],
-  ["Building", /palace|castle|church|monastery|mosque|cathedral|barn|boathouse|library|cinema|lighthouse|bridge|\bdam\b|\bpier\b|triumphal arch|obelisk|stupa|patio|\bhouse\b|fountain|viaduct|planetarium|\bmall\b|\bshop\b/],
-  ["Electronics", /laptop|notebook|desktop computer|monitor|\bscreen|television|cellular|\bipod\b|\bmouse\b|keyboard|remote control|printer|modem|projector|camera|joystick|hard disc|\bradio\b|loudspeaker|microphone|\bphone\b|telephone/],
-  ["Furniture", /\b(chair|couch|sofa|table|desk|bookcase|wardrobe|bed|crib|cradle|throne|four-poster|cabinet|chiffonier|lamp|lampshade|bassinet)\b/],
-  ["Clothing", /jersey|sweatshirt|\bjean|skirt|cardigan|\bsuit\b|coat|pajama|\bsock|\bshoe|sandal|loafer|\bboot|\bhat\b|sombrero|bonnet|bikini|swimming trunks|\bgown|\bdress|backpack|\bpurse|\bwallet|sunglass|bow tie|kimono|poncho|diaper/],
-];
-function categorize(name) {
-  const n = name.toLowerCase();
-  for (const [cat, re] of CATEGORY_RULES) if (re.test(n)) return cat;
-  return null;
-}
-const nice = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// Each photo is sent (shrunk) to the AI API in app.py -> classify_api.py, which asks the Google Gemini API
+// what the photo shows. The API key stays on the server, never in this page.
+// On GitHub Pages the page talks to app.py running on your computer (http://127.0.0.1:5000),
+// or to the server given with ?api=https://your-server
+const CLASSIFY_URL = useBuiltIn ? "http://127.0.0.1:5000/api/classify" : API_URL.replace(/duplicates$/, "classify");
+const FATAL_STATUS = new Set([401, 403, 404, 405, 503]);
+const MIN_GAP_MS = 4200;   // the free Gemini tier allows about 15 requests a minute
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));   // no point asking again for the other photos
 
 function updateCard(p) {
   if (!p.catEl) return;
-  const cat = categoryOf(p, currentMode());
+  const cat = p.category || "Unrecognized";
   p.catEl.textContent = cat;
   p.catEl.title = "Category: " + cat;
   p.detEl.textContent = p.label ? `Detected: ${p.label} (${Math.round(p.conf * 100)}%)` : "";
 }
 
-let model = null;
-async function recognizePhotos() {
-  const list = [...photos];
-  if (!list.length) return;
-  setProgress("wait");
-  setStatus("Loading the recognition model (only the first time)...");
-  try {
-    if (typeof mobilenet === "undefined") throw new Error("the recognition library did not load. Check your internet connection and reload the page");
-    if (!model) model = await mobilenet.load();
-  } catch (err) {
-    list.forEach((p) => { p.category = "Unrecognized"; updateCard(p); });
-    setStatus("Recognition is not available: " + (err.message || err) + ". Photos go to 'Unrecognized' until it works.");
-    return;
-  }
-  const counts = new Map();
-  for (let i = 0; i < list.length; i++) {
-    const p = list[i];
-    setStatus(`Recognizing ${i + 1} of ${list.length}: ${p.name}`);
-    setProgress(i / list.length);
-    try {
-      const img = new Image();
-      img.src = p.url;
-      await img.decode();
-      const preds = await model.classify(img, 3);
-      const hit = preds.find((x) => x.probability >= 0.08 && categorize(x.className));
-      const best = hit || preds[0];
-      p.label = nice(best.className.split(",")[0].trim());
-      p.conf = best.probability;
-      p.category = hit ? categorize(hit.className) : "Other";
-    } catch (_) {
-      p.label = null; p.category = "Unrecognized";   // e.g. a format the browser cannot open
+// JPEG, at most 1024 px: small upload, cheap, and always a format the API accepts
+async function shrink(file) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(bmp.width * k));
+  c.height = Math.max(1, Math.round(bmp.height * k));
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  return new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("resize failed"))), "image/jpeg", 0.85));
+}
+
+async function classifyOne(p) {
+  const form = new FormData();
+  form.append("image", await shrink(p.file), "photo.jpg");
+  for (let attempt = 1; ; attempt++) {
+    let res;
+    try { res = await fetch(CLASSIFY_URL, { method: "POST", body: form }); }
+    catch (_) { throw Object.assign(new Error("Could not reach the AI API. Start it with:  python app.py"), { fatal: true }); }
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (res.ok) return data;
+    if ((res.status === 429 || res.status === 502 || res.status === 504) && attempt < 4) {   // limit or busy service: wait, retry
+      const wait = res.status === 429 ? 15 * attempt : 4 * attempt;
+      setStatus(`The AI is busy or the free limit was reached. Waiting ${wait} seconds before trying ${p.name} again...`);
+      await sleep(wait * 1000);
+      continue;
     }
-    counts.set(p.category, (counts.get(p.category) || 0) + 1);
-    updateCard(p);
-    await nextFrame();
+    throw Object.assign(new Error(data.error || `The AI API answered with status ${res.status}.`), { fatal: FATAL_STATUS.has(res.status) });
   }
+}
+
+async function fileHash(file) {
+  const buf = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// "black pepper - Copy.jpg", "black pepper (1).jpg", "Copy of black pepper.jpg" -> "black pepper"
+const baseName = (name) => name.replace(/\.[^.]+$/, "").replace(/^copy of /i, "")
+  .replace(/([ _-]+copy( ?\(\d+\))?| \(\d+\))$/i, "").trim().toLowerCase();
+
+// Photos that failed before are retried alone; otherwise every photo is recognized.
+// The same photo is asked only once, so a photo and its copies always get the same answer.
+// "Same photo" = identical bytes, OR the same name (ignoring "- Copy") with the same size.
+async function recognizePhotos() {
+  if (!photos.length) return;
+  const retryOnly = photos.some((p) => p.category === "Unrecognized");
+  const todo = retryOnly ? photos.filter((p) => p.category === "Unrecognized") : [...photos];
+  todo.forEach((p) => { p.label = null; p.conf = 0; p.category = null; updateCard(p); });
+
+  setStatus("Looking for copies of the same photo...");
+  setProgress("wait");
+  const byName = new Map();
+  for (const p of photos) {
+    if (!p.hash) { try { p.hash = await fileHash(p.file); } catch (_) { p.hash = "unique:" + p.path; } }
+    const nameKey = baseName(p.name) + "|" + p.size;
+    if (!byName.has(nameKey)) byName.set(nameKey, p.hash);
+    p.gkey = byName.get(nameKey);   // copies with different bytes still share the first one's key
+  }
+  const sameGroup = (p) => photos.filter((q) => q.gkey === p.gkey || q.hash === p.hash);
+
+  const known = new Map();   // key -> a photo that already has an answer
+  photos.forEach((p) => { if (p.category && p.category !== "Unrecognized" && !known.has(p.gkey)) known.set(p.gkey, p); });
+  const apply = (group, d) => group.forEach((q) => {
+    q.label = d ? d.label : null;
+    q.conf = d ? d.confidence : 0;
+    q.category = d ? d.category : "Unrecognized";
+    updateCard(q);
+  });
+  const groups = new Map();
+  for (const p of todo) {
+    if (!groups.has(p.gkey)) groups.set(p.gkey, []);
+    groups.get(p.gkey).push(p);
+  }
+  const jobs = [];
+  for (const [k, group] of groups) {
+    const twin = known.get(k);
+    if (twin) apply(group, { label: twin.label, confidence: twin.conf, category: twin.category });
+    else jobs.push(group);
+  }
+
+  let done = 0, next = 0, fatal = null, lastStart = 0, streak = 0;
+  setProgress(0);
+  async function worker() {
+    while (!fatal && next < jobs.length) {
+      const group = jobs[next++];
+      const p = group[0];
+      setStatus(`Asking the AI about ${p.name}... (${done} of ${jobs.length} done)`);
+      const gap = lastStart + MIN_GAP_MS - Date.now();
+      if (gap > 0) await sleep(gap);
+      lastStart = Date.now();
+      try {
+        apply(group, await classifyOne(p));
+        streak = 0;
+      } catch (err) {
+        console.error("Recognition failed for " + p.name, err);
+        if (err.fatal || ++streak >= 3) fatal = err;   // 3 failures in a row: stop and show the reason
+        apply(group, null);
+      }
+      setProgress(++done / jobs.length);
+      await nextFrame();
+    }
+  }
+  await worker();
+  photos.forEach((p) => { if (!p.category) { p.category = "Unrecognized"; updateCard(p); } });
+
+  // Safety net: every copy of a photo must end up with the same answer as the recognized one.
+  for (const p of photos) {
+    if (p.category === "Unrecognized") continue;
+    for (const q of sameGroup(p)) {
+      if (q !== p && (q.category !== p.category || q.label !== p.label)) {
+        q.label = p.label; q.conf = p.conf; q.category = p.category; updateCard(q);
+      }
+    }
+  }
+
   setProgress(1);
+  if (fatal) { setStatus("AI recognition failed: " + fatal.message + " Unrecognized photos can be retried with 'Recognize again'."); return; }
+  const counts = new Map();
+  photos.forEach((p) => counts.set(p.category, (counts.get(p.category) || 0) + 1));
+  const failed = counts.get("Unrecognized") || 0;
   const summary = [...counts.entries()].sort().map(([c, n]) => `${c} ${n}`).join(", ");
-  setStatus(`Recognized ${list.length} photo(s): ${summary}. Press Organize photos to choose the categories.`);
+  setStatus(`Recognized ${photos.length - failed} of ${photos.length} photo(s): ${summary}. ` +
+    (failed ? `${failed} could not be recognized. Click "Recognize again" to retry only those.` : "Press Organize photos to choose the categories."));
 }
 
 // ------------------------------------------------------------- CHOOSER ----
-// Shown after "Organize photos" is clicked: the user picks the categories before anything is copied.
+// Shown after "Organize photos" is clicked: the user checks and fixes categories before anything is copied.
+const CATEGORY_LIST = ["Fruit", "Vegetable", "Meat", "Seafood", "Dairy", "Bakery", "Snack", "Spice", "Condiment",
+  "Drink", "Dish", "Food",
+  "Animal", "Person", "Plant", "Vehicle", "Building", "Landscape",
+  "Electronics", "Furniture", "Clothing", "Kitchenware", "Tool", "Toy", "Sports", "Cosmetic",
+  "Book", "Document", "Other", "Unrecognized"];
+
 function showChooser() {
   const base = photos.filter((p) => p.selected);
-  const choice = new Map();   // category -> { include, name }
+  let choice = new Map();   // category -> { include, name }
   resetResults("Choose categories before sorting");
 
   const note = document.createElement("p");
   note.className = "hint";
-  note.textContent = "Pick how to group the photos, untick any category you don't want sorted, and rename a folder if you like. Nothing is copied until you press Start sorting.";
+  note.textContent = "Photos go into Sorted, then your first choice (date or camera), then their category, for example Sorted/2026/2026-10/Meat. If the AI got a photo wrong, fix its category below. Untick a folder to skip it. Nothing is copied until you press Start sorting.";
   const set = document.createElement("fieldset");
   const lg = document.createElement("legend");
-  lg.textContent = "Group photos by";
+  lg.textContent = "Sort first by";
   set.append(lg);
-  [["category", "What is in the photo (Fruit, Animal...)"], ["date", "Date (year / month)"], ["camera", "Camera"]].forEach(([v, text]) => {
+  [["date", "Date (year / month)"], ["camera", "Camera"]].forEach(([v, text]) => {
     const l = document.createElement("label");
     const r = document.createElement("input");
     r.type = "radio"; r.name = "sortby"; r.value = v; r.checked = v === sortMode;
-    r.addEventListener("change", () => { sortMode = v; renderGrid(); build(); });
+    r.addEventListener("change", () => { sortMode = v; choice = new Map(); buildTable(); });
     l.append(r, text);
     set.append(l);
   });
   const holder = document.createElement("div");
   holder.style.margin = "14px 0";
+  const review = document.createElement("div");
+  review.style.margin = "0 0 14px";
   const actions = document.createElement("div");
   actions.className = "actions";
   const go = document.createElement("button");
@@ -675,15 +754,16 @@ function showChooser() {
   const cancel = document.createElement("button");
   cancel.type = "button"; cancel.textContent = "Cancel";
   actions.append(go, cancel);
-  $("results").append(note, set, holder, actions);
+  $("results").append(note, set, holder, review, actions);
 
   function updateGo() {
     const n = base.filter((p) => choice.get(categoryOf(p, sortMode))?.include).length;
     go.textContent = `Start sorting (${n} photo${n === 1 ? "" : "s"})`;
     go.disabled = n === 0;
   }
-  function build() {
-    choice.clear();
+  function buildTable() {
+    const old = choice;
+    choice = new Map();
     holder.replaceChildren();
     const counts = new Map();
     base.forEach((p) => { const c = categoryOf(p, sortMode); counts.set(c, (counts.get(c) || 0) + 1); });
@@ -691,17 +771,17 @@ function showChooser() {
     wrap.className = "tablewrap";
     const table = document.createElement("table");
     const hr = table.createTHead().insertRow();
-    ["Include", "Category", "Photos", "Folder name in Sorted"].forEach((t) => { const th = document.createElement("th"); th.textContent = t; hr.append(th); });
+    ["Include", "Folder", "Photos", "Folder name in Sorted"].forEach((t) => { const th = document.createElement("th"); th.textContent = t; hr.append(th); });
     const body = table.createTBody();
     for (const [c, n] of [...counts.entries()].sort()) {
-      const entry = { include: true, name: c };
+      const entry = old.get(c) || { include: true, name: c };
       choice.set(c, entry);
       const tr = body.insertRow();
       const box = document.createElement("input");
-      box.type = "checkbox"; box.checked = true; box.setAttribute("aria-label", "Include " + c);
+      box.type = "checkbox"; box.checked = entry.include; box.setAttribute("aria-label", "Include " + c);
       box.addEventListener("change", () => { entry.include = box.checked; updateGo(); });
       const name = document.createElement("input");
-      name.type = "text"; name.value = c; name.setAttribute("aria-label", "Folder name for " + c);
+      name.type = "text"; name.value = entry.name; name.setAttribute("aria-label", "Folder name for " + c);
       name.style.cssText = "font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:4px 8px;width:100%";
       name.addEventListener("input", () => { entry.name = name.value.trim() || c; });
       tr.insertCell().append(box);
@@ -713,10 +793,66 @@ function showChooser() {
     holder.append(wrap);
     updateGo();
   }
+  // One card per photo with a dropdown to correct its category (only when grouping by category)
+  function buildReview() {
+    review.replaceChildren();
+    const det = document.createElement("details");
+    det.open = true;
+    const sum = document.createElement("summary");
+    sum.textContent = "Fix a wrong category (optional)";
+    sum.style.cssText = "cursor:pointer;font-weight:600;margin:0 0 10px";
+    const grid = document.createElement("div");
+    grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:380px;overflow:auto";
+    for (const p of base) {
+      const card = document.createElement("div");
+      card.className = "dup";
+      const img = document.createElement("img");
+      img.alt = p.name; img.src = p.url;
+      img.addEventListener("error", () => img.removeAttribute("src"));
+      const info = document.createElement("div");
+      info.className = "info";
+      const nm = document.createElement("div");
+      nm.textContent = p.name;
+      const dt = document.createElement("div");
+      dt.className = "why";
+      dt.textContent = p.label ? `AI saw: ${p.label}` : "Not recognized";
+      const sel = document.createElement("select");
+      sel.style.cssText = "width:100%;margin-top:4px;padding:4px 6px";
+      sel.setAttribute("aria-label", "Category for " + p.name);
+      const current = p.category || "Unrecognized";
+      const names = CATEGORY_LIST.includes(current) ? CATEGORY_LIST : [...CATEGORY_LIST, current];
+      const addOption = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text || value; sel.append(o); return o; };
+      names.forEach((c) => addOption(c));
+      const other = addOption("__new", "+ New category...");
+      sel.value = current;
+      let last = current;
+      sel.addEventListener("change", () => {
+        let value = sel.value;
+        if (value === "__new") {
+          value = safeName((prompt("Name of the new category:") || "").trim()) ;
+          if (!value || value === "Unknown") { sel.value = last; return; }
+          if (![...sel.options].some((o) => o.value === value)) {
+            const o = document.createElement("option"); o.value = value; o.textContent = value; sel.insertBefore(o, other);
+          }
+          sel.value = value;
+        }
+        last = value;
+        p.category = value;
+        updateCard(p);
+        buildTable();
+      });
+      info.append(nm, dt, sel);
+      card.append(img, info);
+      grid.append(card);
+    }
+    det.append(sum, grid);
+    review.append(det);
+  }
   go.addEventListener("click", () => busy(() => organize(choice)));
   cancel.addEventListener("click", () => { $("results").hidden = true; setStatus("Cancelled. Nothing was copied."); });
-  build();
-  setStatus("Choose the categories you want, then press Start sorting.");
+  buildTable();
+  buildReview();
+  setStatus("Check the categories, fix any wrong ones, then press Start sorting.");
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -748,7 +884,8 @@ function groupBlock(g, i, byPath) {
   const box = document.createElement("div");
   box.className = "group";
   const h = document.createElement("h3");
-  h.textContent = `Group ${i + 1}: ${g.files.length} identical files, ${fmtSize(g.size)} each (fingerprint ${g.hash})`;
+  const kp = byPath.get((g.files.find((f) => f.keep) || g.files[0]).path);
+  h.textContent = `Group ${i + 1}${kp ? " \u00b7 " + (kp.category || "Unrecognized") : ""}: ${g.files.length} identical files, ${fmtSize(g.size)} each (fingerprint ${g.hash})`;
   const files = document.createElement("div");
   files.className = "files";
   const keep = g.files.find((f) => f.keep) || g.files[0];
@@ -763,6 +900,8 @@ function groupBlock(g, i, byPath) {
     info.className = "info";
     const lines = [
       [f.keep ? "KEEP" : "DUPLICATE", "tag"],
+      [p ? `Category: ${p.category || "Unrecognized"}` : "", "catline"],
+      [p && p.label ? `AI saw: ${p.label} (${Math.round(p.conf * 100)}%)` : "", ""],
       [f.path, ""],
       [`${fmtSize(f.size)} · modified ${fmtDate(new Date(f.last_modified))}`, ""],
       [p ? `Camera: ${p.camera} · taken ${fmtDate(p.date)}` : "", ""],
@@ -842,6 +981,18 @@ async function findDuplicates() {
     setStatus("Done. No duplicates found.");
     return;
   }
+  const perCat = new Map();   // extra copies per generated category
+  data.groups.forEach((g) => {
+    const p = byPath.get(g.files[0].path);
+    const c = (p && p.category) || "Unrecognized";
+    perCat.set(c, (perCat.get(c) || 0) + g.files.length - 1);
+  });
+  const ch = document.createElement("h3");
+  ch.textContent = "Extra copies by category";
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  renderChips(chips, perCat);
+  $("results").append(ch, chips);
   const h = document.createElement("h3");
   h.textContent = "Each group: the first file is the one to keep";
   $("results").append(h);
@@ -885,6 +1036,7 @@ $("pickSource").addEventListener("click", pickSource);
 $("order").addEventListener("change", applyOrder);
 $("selAll").addEventListener("click", () => setAll(true));
 $("selNone").addEventListener("click", () => setAll(false));
+$("recog").addEventListener("click", () => busy(recognizePhotos));
 $("organize").addEventListener("click", showChooser);
 $("dupes").addEventListener("click", () => busy(findDuplicates));
 
