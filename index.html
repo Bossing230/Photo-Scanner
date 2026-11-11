@@ -576,10 +576,11 @@ async function organize(choice) {
 // what the photo shows. The API key stays on the server, never in this page.
 // On GitHub Pages the page talks to app.py running on your computer (http://127.0.0.1:5000),
 // or to the server given with ?api=https://your-server
-const DEPLOYED_API = "https://photo-scanner-api.onrender.com";   // after deploying on Render, paste its address here, e.g. "https://photo-scanner-api.onrender.com"
+const DEPLOYED_API = "https://your-render-address.onrender.com";
 const CLASSIFY_URL = useBuiltIn
   ? (DEPLOYED_API || "http://127.0.0.1:5000").replace(/\/$/, "") + "/api/classify"
   : API_URL.replace(/duplicates$/, "classify");
+const FATAL_STATUS = new Set([401, 403, 404, 405, 503]);
 const MIN_GAP_MS = 4200;   // the free Gemini tier allows about 15 requests a minute
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));   // no point asking again for the other photos
 
