@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Photo Organizer - duplicate finder + AI category API
+SnapSort - duplicate finder + AI category API
 
 Local:   pip install -r requirements.txt
          python app.py            then open http://127.0.0.1:5000
