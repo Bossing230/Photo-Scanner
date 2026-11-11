@@ -1,36 +1,15 @@
 #!/usr/bin/env python3
 """
-Photo Organizer - duplicate finder API
+Photo Organizer - duplicate finder + AI category API
 
-Run:
-    pip install flask
-    python app.py
+Local:   pip install -r requirements.txt
+         python app.py            then open http://127.0.0.1:5000
+Render:  start command  ->  gunicorn app:app --timeout 120
+         environment    ->  GEMINI_API_KEY = your key
 
-Then open  http://127.0.0.1:5000  in Chrome or Edge.
-
-Endpoint
-    POST /api/duplicates     (multipart/form-data)
-        files     : the photos (one "files" part per photo)
-        manifest  : JSON list, same order as the files:
-                    [{"path": "trip/img1.jpg", "lastModified": 1700000000000}, ...]
-
-    Returns JSON:
-        {
-          "total_files": 12,
-          "groups": [
-            {"hash": "3a7bd3e2360a", "size": 245123,
-             "files": [{"path": "...", "name": "...", "size": 245123,
-                        "last_modified": 1700000000000, "keep": true}, ...]}
-          ],
-          "extra_copies": 3,
-          "wasted_bytes": 735369
-        }
-
-How it works (same idea as find_duplicates in photo_organizer.py):
-    1. group the files by size (files with a different size can't be identical)
-    2. for sizes that appear more than once, compute a SHA-256 hash
-    3. files with the same hash are duplicates
-    4. in every group the first file is the one to KEEP
+Endpoints
+    POST /api/duplicates   (multipart: files + manifest)
+    POST /api/classify     (multipart: image)   -> see classify_api.py
 """
 
 import hashlib
@@ -41,22 +20,34 @@ from collections import defaultdict
 
 from flask import Flask, jsonify, request, send_from_directory
 
+from classify_api import bp as classify_bp
+
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".bmp"}
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# Only these sites may call this API from a browser.
+# If your GitHub Pages address is different, change the first line.
+ALLOWED_ORIGINS = {
+    "https://bossing230.github.io",
+    "http://127.0.0.1:5000",
+    "http://localhost:5000",
+}
+
 app = Flask(__name__)
-from classify_api import bp as classify_bp
-app.register_blueprint(classify_bp) 
+app.register_blueprint(classify_bp)
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 * 1024  # 2 GB per request
 
 
 @app.after_request
 def allow_other_origins(response):
-    """Lets the page call this API from GitHub Pages, from disk, or from any other address."""
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    """Lets the GitHub Pages site (and local runs) call this API."""
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
-    # Chrome asks for this when a public https page (like GitHub Pages) talks to localhost
+    # Chrome asks for this when a public https page talks to localhost
     response.headers["Access-Control-Allow-Private-Network"] = "true"
     return response
 
@@ -82,6 +73,12 @@ def home():
             404,
         )
     return send_from_directory(HERE, page)
+
+
+@app.route("/health")
+def health():
+    """Handy for checking that the server is awake."""
+    return jsonify(ok=True)
 
 
 def file_hash(stream, chunk=1024 * 1024):
