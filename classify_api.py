@@ -28,9 +28,10 @@ from google.genai import errors, types
 
 CATEGORIES = [
     "Fruit", "Vegetable", "Meat", "Seafood", "Dairy", "Bakery", "Snack", "Spice", "Condiment",
-    "Drink", "Dish", "Food",
-    "Animal", "Person", "Plant", "Vehicle", "Building", "Landscape",
-    "Electronics", "Furniture", "Clothing", "Kitchenware", "Tool", "Toy", "Sports", "Cosmetic",
+    "Drink", "Dish", "Frozen", "Grain", "Egg", "Dessert", "Nuts", "Canned", "Food",
+    "Animal", "Person", "Plant", "Flower", "Vehicle", "Building", "Landscape",
+    "Electronics", "Appliance", "Furniture", "Clothing", "Shoes", "Bag", "Jewelry",
+    "Kitchenware", "Tool", "Toy", "Sports", "Cosmetic", "Medicine", "Cleaning", "Stationery",
     "Book", "Document", "Other",
 ]
 MAX_BYTES = 5 * 1024 * 1024
@@ -43,6 +44,9 @@ PROMPT = (
     '"Meat" for raw meat, "Seafood" for fish and shellfish used as food, "Drink" for beverages, "Dish" for cooked meals, '
     '"Kitchenware" for pots, pans, plates and utensils, and "Food" only for other food. '
     'Fresh produce such as garlic, onions and ginger is "Vegetable". '
+    '"Frozen" for ice, ice cubes, ice cream and frozen food, "Grain" for rice, noodles, pasta, flour and cereal, '
+    '"Egg" for eggs, "Dessert" for sweets, cakes and candy, "Nuts" for nuts and seeds, '
+    '"Canned" for canned goods, "Medicine" for pills and medical items, "Cleaning" for soap and cleaning products. '
     'Describe only what you can clearly see. If you are not sure, give a low confidence instead of guessing. '
     'Use "Other" only if nothing fits. Reply with JSON only, no other text: '
     '{"label": "<main subject>", "category": "<one category from the list>", "confidence": <number from 0 to 1>}'
